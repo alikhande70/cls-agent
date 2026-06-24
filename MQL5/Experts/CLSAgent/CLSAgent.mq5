@@ -9,9 +9,10 @@
 //|                                                                    |
 //|   Part 1 built the shell + Core. Part 2 wired the Context Engine   |
 //|   stage to the Market modules. Part 3 wired the Setup Detector     |
-//|   stage to Strategy/SetupDetector + Setup A/B/C/D. Part 4 wires    |
-//|   the Score/Decision Engine stage. Stages from Risk Engine onward  |
-//|   remain named stubs until Parts 5-9.                              |
+//|   stage to Strategy/SetupDetector + Setup A/B/C/D. Part 4 wired    |
+//|   the Score/Decision Engine stage. Part 5 wires the Risk Engine    |
+//|   stage. Stages from Basket Execution onward remain named stubs    |
+//|   until Parts 6-9.                                                  |
 //+------------------------------------------------------------------+
 #property copyright "CLS Agent"
 #property link      ""
@@ -34,14 +35,15 @@
 #include <CLSAgent/Strategy/CLSAgent_SetupDetector.mqh>
 #include <CLSAgent/Strategy/CLSAgent_ScoreEngine.mqh>
 #include <CLSAgent/Strategy/CLSAgent_DecisionEngine.mqh>
+#include <CLSAgent/Risk/CLSAgent_RiskEngine.mqh>
 
 //+------------------------------------------------------------------+
-//| Pipeline stage stubs still pending (Parts 5-9). Stage 1 (Context  |
+//| Pipeline stage stubs still pending (Parts 6-9). Stage 1 (Context  |
 //| Engine) is BuildSetupContext() below; Stage 2 (Setup Detector) is  |
 //| CLS_DetectSetups(); Stage 3 (Score/Decision Engine) is             |
-//| CLS_DecideSignal() - all called directly from OnTick().            |
+//| CLS_DecideSignal(); Stage 4 (Risk Engine) is CLS_EvaluateRisk() -   |
+//| all called directly from OnTick().                                  |
 //+------------------------------------------------------------------+
-void Stage_RiskEngine_STUB(const SRiskDecision &risk)      { /* Part 5: Risk/RiskEngine, BasketRisk, LotCalculator, DailyLimits */ }
 void Stage_BasketExecution_STUB(const SBasketInfo &basket) { /* Part 6: Execution/OrderSender, BasketExecutor */ }
 void Stage_PositionManager_STUB()                          { /* Part 7: Execution/PositionManager, PartialExit, Trailing */ }
 void Stage_JournalMemory_STUB()                            { /* Part 8: Memory/Journal, TradeLog, BasketLog, PerformanceStats */ }
@@ -141,9 +143,9 @@ void OnDeinit(const int reason)
 
 //+------------------------------------------------------------------+
 //| Recompute whether the current Mode/AutoTrade combo permits orders. |
-//| Even when this is true, Parts 5-6 (Risk Engine/Basket Execution)   |
-//| still get the final veto - this flag only gates whether the EA is  |
-//| allowed to attempt sending anything at all.                        |
+//| Even when this is true, Basket Execution (Part 6) still gets the   |
+//| final veto - this flag only gates whether the EA is allowed to     |
+//| attempt sending anything at all.                                    |
 //+------------------------------------------------------------------+
 void RefreshTradingPermissionFlag()
 {
@@ -222,7 +224,7 @@ void OnTick()
       ctx.spreadPoints, (ctx.spreadAllowed ? "OK" : "BLOCKED"),
       (ctx.isContextValid ? "true" : "false")));
 
-   // Pipeline shape from here on - Parts 5-9 replace the remaining stub calls
+   // Pipeline shape from here on - Parts 6-9 replace the remaining stub calls
    // with real module calls, in order, without changing this call sequence.
    SSetupSignal  signal;
    SScoreResult  score;
@@ -238,9 +240,15 @@ void OnTick()
          signal.entryPrice, signal.stopLoss, signal.takeProfit,
          score.score, g_SymbolProfile.minScoreToTrade, EnumToString(score.status),
          (accepted ? "" : (" reason=" + CLS_RejectReasonToString(score.rejectReason)))));
+
+      const bool approved = CLS_EvaluateRisk(ctx, signal, score, risk);
+      CLS_Log(approved ? CLS_LOG_INFO : CLS_LOG_WARNING, "Risk", StringFormat(
+         "%s dir=%s lots=%.2f basketRisk=%.2f%% approved=%s%s",
+         EnumToString(signal.setupType), CLS_DirectionToString(signal.direction),
+         risk.lotSize, risk.basketRiskPercent, (approved ? "true" : "false"),
+         (approved ? "" : (" reason=" + CLS_RejectReasonToString(risk.rejectReason)))));
    }
 
-   Stage_RiskEngine_STUB(risk);
    Stage_BasketExecution_STUB(basket);
    Stage_PositionManager_STUB();
    Stage_JournalMemory_STUB();

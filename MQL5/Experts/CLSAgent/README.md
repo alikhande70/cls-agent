@@ -8,7 +8,7 @@ it never sends an order — that boundary is enforced in code, not just by conve
 
 ## Build status
 
-**Parts 1-4 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine.**
+**Parts 1-5 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine.**
 
 Implemented so far:
 - **Part 1 — Core.** Folder skeleton for every module, fixed safety constants
@@ -43,9 +43,25 @@ Implemented so far:
   (Part 5), which still runs after this stage regardless of the verdict so every
   signal — accepted or rejected — reaches the Journal later (Rule #9). Wired into
   `OnTick()` directly (no stub remains for this stage).
+- **Part 5 — Risk / Risk Engine.** `DailyLimits` (current daily loss % vs.
+  `InpMaxDailyLossPercent`, baseline captured once per broker day), `NewsGuard`
+  (manual `"YYYY.MM.DD HH:MM-HH:MM;..."` blackout windows, v1 has no economic-
+  calendar integration), `BasketRisk` (scans live positions filtered by this
+  chart's symbol + magic-number range + direction — no separately maintained
+  tally that could drift from the broker's own book — to read the current
+  basket's order count and floating P/L), `LotCalculator` (lot size from
+  equity × risk% ÷ stop distance, normalized down to the broker's volume step,
+  never rounded up past the requested risk). `RiskEngine` orchestrates all four:
+  re-checks the Rule #7 hard gates the Score Engine deliberately left ungated
+  (spread/session/ATR regime), adds DailyLoss and NewsGuard, enforces Rule #5
+  (`CLS_NO_ADD_TO_LOSING_BASKET`, always true) and Rule #3/#4 (the whole
+  basket's risk target is fixed at `InpBasketRiskPercent` and split evenly
+  across `InpMaxOrdersPerBasket` slots, so total basket risk never grows as
+  more orders are added — only how many slots are already filled). Wired into
+  `OnTick()` directly (no stub remains for this stage).
 
 Not implemented yet (later parts, do not edit ahead of schedule):
-Risk Engine, Basket Execution, Position Management, Journal/adaptive state, and
+Basket Execution, Position Management, Journal/adaptive state, and
 Reports/backtest export.
 
 ## Folder map
@@ -67,15 +83,21 @@ MQL5/
     │   ├── CLSAgent_SpreadBuffer.mqh
     │   ├── CLSAgent_ATRRegime.mqh
     │   └── CLSAgent_LevelCache.mqh
-    └── Strategy/                   <- Parts 3-4
-        ├── CLSAgent_SetupContext.mqh
-        ├── CLSAgent_SetupDetector.mqh
-        ├── CLSAgent_SetupA_AsianSweep.mqh
-        ├── CLSAgent_SetupB_DailyHunt.mqh
-        ├── CLSAgent_SetupC_FVGFill.mqh
-        ├── CLSAgent_SetupD_BMSContinuation.mqh
-        ├── CLSAgent_ScoreEngine.mqh     <- Part 4
-        └── CLSAgent_DecisionEngine.mqh  <- Part 4
+    ├── Strategy/                   <- Parts 3-4
+    │   ├── CLSAgent_SetupContext.mqh
+    │   ├── CLSAgent_SetupDetector.mqh
+    │   ├── CLSAgent_SetupA_AsianSweep.mqh
+    │   ├── CLSAgent_SetupB_DailyHunt.mqh
+    │   ├── CLSAgent_SetupC_FVGFill.mqh
+    │   ├── CLSAgent_SetupD_BMSContinuation.mqh
+    │   ├── CLSAgent_ScoreEngine.mqh
+    │   └── CLSAgent_DecisionEngine.mqh
+    └── Risk/                       <- Part 5
+        ├── CLSAgent_RiskEngine.mqh
+        ├── CLSAgent_BasketRisk.mqh
+        ├── CLSAgent_LotCalculator.mqh
+        ├── CLSAgent_DailyLimits.mqh
+        └── CLSAgent_NewsGuard.mqh
 ```
 
 ## Installing into MetaTrader 5
