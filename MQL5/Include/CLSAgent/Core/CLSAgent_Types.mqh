@@ -115,18 +115,26 @@ struct SSetupContext
    datetime             barTime;
    ENUM_CLS_SESSION     session;
    ENUM_CLS_ATR_REGIME  atrRegime;
+   double               atrValue;
    double               spreadPoints;
-   bool                 isContextValid;
+   bool                 sessionAllowed;   // CLS_IsSessionTradeable(session)
+   bool                 spreadAllowed;    // CLS_SpreadBuffer_IsAcceptable(...)
+   bool                 atrRegimeAllowed; // CLS_IsATRRegimeTradeable(atrRegime)
+   bool                 isContextValid;   // all market reads succeeded (history/handles ready)
 
    SSetupContext()
    {
-      symbol         = "";
-      assetClass     = CLS_ASSET_FOREX;
-      barTime        = 0;
-      session        = CLS_SESSION_OFF;
-      atrRegime      = CLS_ATR_REGIME_NORMAL;
-      spreadPoints   = 0.0;
-      isContextValid = false;
+      symbol           = "";
+      assetClass       = CLS_ASSET_FOREX;
+      barTime          = 0;
+      session          = CLS_SESSION_OFF;
+      atrRegime        = CLS_ATR_REGIME_NORMAL;
+      atrValue         = 0.0;
+      spreadPoints     = 0.0;
+      sessionAllowed   = false;
+      spreadAllowed    = false;
+      atrRegimeAllowed = false;
+      isContextValid   = false;
    }
 };
 

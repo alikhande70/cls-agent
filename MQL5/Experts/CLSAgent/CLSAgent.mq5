@@ -3,13 +3,13 @@
 //|         CLS Agent v2.4+ - Decision-Safe Contextual Liquidity     |
 //|                          Scalping Agent                          |
 //|                                                                    |
-//|   Part 1: Project Skeleton + Core Types + Inputs + Constants +    |
-//|           Main EA Shell.                                          |
+//|   Pipeline: Market Data -> Context Engine -> Setup Detector ->    |
+//|   Score Engine -> Decision Engine -> Risk Engine -> Basket        |
+//|   Execution -> Position Manager -> Journal/Memory -> Report.      |
 //|                                                                    |
-//|   This file only wires the EA lifecycle (OnInit/OnTick/OnDeinit)   |
-//|   and lays out the pipeline stages as named stubs. Parts 2-9       |
-//|   replace each stub with a real module call - the call sites and   |
-//|   their order will not change.                                     |
+//|   Part 1 built the shell + Core. Part 2 wires the Context Engine   |
+//|   stage to the real Market modules below. Stages from Setup       |
+//|   Detector onward remain named stubs until Parts 3-9.              |
 //+------------------------------------------------------------------+
 #property copyright "CLS Agent"
 #property link      ""
@@ -23,36 +23,24 @@
 #include <CLSAgent/Core/CLSAgent_Inputs.mqh>
 #include <CLSAgent/Core/CLSAgent_State.mqh>
 #include <CLSAgent/Core/CLSAgent_Utils.mqh>
+#include <CLSAgent/Market/CLSAgent_SymbolProfile.mqh>
+#include <CLSAgent/Market/CLSAgent_TimeSession.mqh>
+#include <CLSAgent/Market/CLSAgent_Indicators.mqh>
+#include <CLSAgent/Market/CLSAgent_SpreadBuffer.mqh>
+#include <CLSAgent/Market/CLSAgent_ATRRegime.mqh>
+#include <CLSAgent/Market/CLSAgent_LevelCache.mqh>
 
 //+------------------------------------------------------------------+
-//| Pipeline stage stubs - one per box in the architecture diagram.   |
-//| Bodies are intentionally empty in Part 1; Parts 2-9 fill them in. |
+//| Pipeline stage stubs still pending (Parts 3-9). Stage 1, the      |
+//| Context Engine, is implemented below as BuildSetupContext().      |
 //+------------------------------------------------------------------+
-void Stage_ContextEngine_STUB(const SSetupContext &ctx)    { /* Part 2: Market/SymbolProfile, TimeSession, Indicators, SpreadBuffer, ATRRegime */ }
-void Stage_SetupDetector_STUB(const SSetupSignal &signal)  { /* Part 3: Strategy/SetupDetector + Setup A/B/C/D */ }
+void Stage_SetupDetector_STUB(const SSetupContext &ctx, const SSetupSignal &signal) { /* Part 3: Strategy/SetupDetector + Setup A/B/C/D */ }
 void Stage_ScoreEngine_STUB(const SScoreResult &score)     { /* Part 4: Strategy/ScoreEngine + DecisionEngine */ }
 void Stage_RiskEngine_STUB(const SRiskDecision &risk)      { /* Part 5: Risk/RiskEngine, BasketRisk, LotCalculator, DailyLimits */ }
 void Stage_BasketExecution_STUB(const SBasketInfo &basket) { /* Part 6: Execution/OrderSender, BasketExecutor */ }
 void Stage_PositionManager_STUB()                          { /* Part 7: Execution/PositionManager, PartialExit, Trailing */ }
 void Stage_JournalMemory_STUB()                            { /* Part 8: Memory/Journal, TradeLog, BasketLog, PerformanceStats */ }
 void Stage_ReportLLMReview_STUB()                           { /* Part 9: Reports/DebugPanel, BacktestReport, ExportCSV */ }
-
-//+------------------------------------------------------------------+
-//| Resolve Gold vs Forex from the chart symbol and InpGoldAliases.   |
-//+------------------------------------------------------------------+
-ENUM_CLS_ASSET_CLASS ResolveAssetClass()
-{
-   string aliases[];
-   const int n   = CLS_SplitCsv(InpGoldAliases, aliases);
-   const string sym = _Symbol;
-
-   for(int i = 0; i < n; i++)
-   {
-      if(StringLen(aliases[i]) > 0 && StringFind(sym, aliases[i]) >= 0)
-         return CLS_ASSET_GOLD;
-   }
-   return CLS_ASSET_FOREX;
-}
 
 //+------------------------------------------------------------------+
 //| Reject configurations that would be unsafe to run, before the EA  |
@@ -82,6 +70,21 @@ bool ValidateInputs()
 }
 
 //+------------------------------------------------------------------+
+//| Basket logic needs several simultaneous positions on the same     |
+//| symbol/direction, which only a hedging-type account preserves as   |
+//| distinct positions. Netting accounts merge them - warn, don't      |
+//| block, since SIGNAL_ONLY analysis is still useful either way.      |
+//+------------------------------------------------------------------+
+void CheckAccountMarginMode()
+{
+   const ENUM_ACCOUNT_MARGIN_MODE marginMode = (ENUM_ACCOUNT_MARGIN_MODE)AccountInfoInteger(ACCOUNT_MARGIN_MODE);
+   if(marginMode != ACCOUNT_MARGIN_MODE_RETAIL_HEDGING)
+      CLS_Log(CLS_LOG_WARNING, "Init",
+         "Account is not in hedging mode - Basket Execution (Part 6) needs multiple simultaneous "
+         "positions per symbol/direction; a netting account will merge them into one position.");
+}
+
+//+------------------------------------------------------------------+
 //| Expert initialization function                                    |
 //+------------------------------------------------------------------+
 int OnInit()
@@ -91,8 +94,17 @@ int OnInit()
    if(!ValidateInputs())
       return INIT_PARAMETERS_INCORRECT;
 
-   const ENUM_CLS_ASSET_CLASS detectedClass = ResolveAssetClass();
+   const ENUM_CLS_ASSET_CLASS detectedClass = CLS_ResolveAssetClass(_Symbol);
    CLS_State_Init(_Symbol, detectedClass);
+
+   if(!CLS_BuildSymbolProfile(_Symbol, g_SymbolProfile))
+      return INIT_FAILED;
+
+   if(!CLS_Indicators_Init(_Symbol))
+      return INIT_FAILED;
+
+   CLS_SpreadBuffer_Init();
+   CheckAccountMarginMode();
 
    CLS_Log(CLS_LOG_INFO, "Init", StringFormat(
       "%s v%s starting on %s | AssetClass=%s | Mode=%s | AutoTrade=%s",
@@ -105,6 +117,11 @@ int OnInit()
       "Risk config: BasketRisk=%.2f%% MaxOrdersPerBasket=%d MaxDailyLoss=%.2f%% NoAddToLosingBasket=true (fixed)",
       InpBasketRiskPercent, InpMaxOrdersPerBasket, InpMaxDailyLossPercent));
 
+   CLS_Log(CLS_LOG_INFO, "Init", StringFormat(
+      "Symbol profile: digits=%d point=%.*f tickValue=%.5f stopsLevel=%dpt maxSpread=%dpt minScore=%.1f",
+      g_SymbolProfile.digits, g_SymbolProfile.digits, g_SymbolProfile.point, g_SymbolProfile.tickValue,
+      g_SymbolProfile.stopsLevelPoints, g_SymbolProfile.maxSpreadPoints, g_SymbolProfile.minScoreToTrade));
+
    return INIT_SUCCEEDED;
 }
 
@@ -113,6 +130,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
+   CLS_Indicators_Deinit();
    CLS_Log(CLS_LOG_INFO, "Deinit", StringFormat("CLS Agent stopping. Reason code=%d", reason));
 }
 
@@ -128,11 +146,57 @@ void RefreshTradingPermissionFlag()
 }
 
 //+------------------------------------------------------------------+
+//| Context Engine (Part 2) - builds the market snapshot for the      |
+//| just-closed bar. Every field the Risk Engine (Part 5) needs for    |
+//| Rule #7 (spread/session/ATR regime checked before entry) is        |
+//| resolved here, once per bar, instead of being scattered later.     |
+//+------------------------------------------------------------------+
+SSetupContext BuildSetupContext()
+{
+   SSetupContext ctx;
+   ctx.symbol  = _Symbol;
+   ctx.barTime = g_State.lastProcessedBarTime;
+
+   // Refreshed every bar: brokers can change tick value/stops level intraday.
+   if(!CLS_BuildSymbolProfile(_Symbol, g_SymbolProfile))
+      return ctx; // isContextValid stays false
+
+   ctx.assetClass = g_SymbolProfile.assetClass;
+
+   ctx.session        = CLS_GetCurrentSession();
+   ctx.sessionAllowed = CLS_IsSessionTradeable(ctx.session);
+
+   ctx.spreadPoints  = CLS_SpreadBuffer_Average();
+   ctx.spreadAllowed = CLS_SpreadBuffer_IsAcceptable(g_SymbolProfile.maxSpreadPoints);
+
+   ENUM_CLS_ATR_REGIME regime;
+   double              atrValue;
+   if(!CLS_GetATRRegimeNow(regime, atrValue))
+   {
+      CLS_Log(CLS_LOG_WARNING, "Context", "ATR history not ready yet - blocking entries this bar.");
+      return ctx; // isContextValid stays false until ATR history is ready
+   }
+   ctx.atrRegime        = regime;
+   ctx.atrValue         = atrValue;
+   ctx.atrRegimeAllowed = CLS_IsATRRegimeTradeable(regime);
+
+   if(CLS_LevelCache_NeedsUpdate())
+      CLS_LevelCache_Update(_Symbol);
+
+   ctx.isContextValid = true;
+   return ctx;
+}
+
+//+------------------------------------------------------------------+
 //| Expert tick function                                              |
 //+------------------------------------------------------------------+
 void OnTick()
 {
    g_State.ticksProcessed++;
+
+   // Sampled on every tick (not gated by bar-close) so the spread average is
+   // already representative of current conditions by the time a bar closes.
+   CLS_SpreadBuffer_AddSample(_Symbol);
 
    if(CLS_State_RolloverDayIfNeeded())
       CLS_Log(CLS_LOG_INFO, "Tick", "New trading day detected, daily P/L baseline reset.");
@@ -143,19 +207,24 @@ void OnTick()
    if(!CLS_State_IsNewBar(_Symbol, PERIOD_CURRENT))
       return;
 
-   CLS_Log(CLS_LOG_DEBUG, "Tick", StringFormat("New closed bar at %s on %s.",
-           TimeToString(g_State.lastProcessedBarTime, TIME_DATE | TIME_MINUTES), _Symbol));
+   const SSetupContext ctx = BuildSetupContext();
 
-   // Pipeline shape only - default-constructed structs, no logic yet.
-   // Parts 2-9 replace these stub calls with real module calls, in order.
-   SSetupContext ctx;
+   CLS_Log(CLS_LOG_DEBUG, "Context", StringFormat(
+      "Bar=%s Session=%s(%s) ATRRegime=%s(%.5f,%s) Spread=%.1f(%s) Valid=%s",
+      TimeToString(ctx.barTime, TIME_DATE | TIME_MINUTES),
+      EnumToString(ctx.session), (ctx.sessionAllowed ? "OK" : "BLOCKED"),
+      EnumToString(ctx.atrRegime), ctx.atrValue, (ctx.atrRegimeAllowed ? "OK" : "BLOCKED"),
+      ctx.spreadPoints, (ctx.spreadAllowed ? "OK" : "BLOCKED"),
+      (ctx.isContextValid ? "true" : "false")));
+
+   // Pipeline shape from here on - Parts 3-9 replace these stub calls with
+   // real module calls, in order, without changing this call sequence.
    SSetupSignal  signal;
    SScoreResult  score;
    SRiskDecision risk;
    SBasketInfo   basket;
 
-   Stage_ContextEngine_STUB(ctx);
-   Stage_SetupDetector_STUB(signal);
+   Stage_SetupDetector_STUB(ctx, signal);
    Stage_ScoreEngine_STUB(score);
    Stage_RiskEngine_STUB(risk);
    Stage_BasketExecution_STUB(basket);
