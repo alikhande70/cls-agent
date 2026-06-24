@@ -8,7 +8,7 @@ it never sends an order — that boundary is enforced in code, not just by conve
 
 ## Build status
 
-**Parts 1-5 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine.**
+**Parts 1-6 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine, Basket Execution.**
 
 Implemented so far:
 - **Part 1 — Core.** Folder skeleton for every module, fixed safety constants
@@ -59,10 +59,26 @@ Implemented so far:
   across `InpMaxOrdersPerBasket` slots, so total basket risk never grows as
   more orders are added — only how many slots are already filled). Wired into
   `OnTick()` directly (no stub remains for this stage).
+- **Part 6 — Execution / Basket Execution.** `OrderSender` is a pure
+  broker-mechanics layer: builds one `MqlTradeRequest`, resolves the broker's
+  supported filling mode (FOK → IOC → RETURN), re-validates the stop/target
+  distance against the live stops/freeze level on every attempt (price moves
+  between retries), and retries up to `InpOrderRetryCount` times
+  (`InpOrderRetryDelayMs` apart) — but only on transient retcodes
+  (requote/timeout/price-changed/connection); a non-retryable rejection
+  (invalid stops, no money, trading disabled) returns immediately instead of
+  wasting retries on a result that cannot change. `BasketExecutor` is the
+  policy layer: it acts only on a signal the Risk Engine already approved,
+  applies the final veto (`g_State.tradingAllowedByMode`, i.e.
+  `Mode=AUTO_TRADE` *and* `AutoTrade=true`), derives the per-setup magic
+  number from `CLSAgent_Constants.mqh`'s magic-offset layout, and is the
+  single call site in the whole project that may ever reach
+  `CLS_SendMarketOrder()` — Rule #1 (the LLM never sends orders) is enforced
+  structurally by that exclusivity, not by a runtime flag. Wired into
+  `OnTick()` directly (no stub remains for this stage).
 
 Not implemented yet (later parts, do not edit ahead of schedule):
-Basket Execution, Position Management, Journal/adaptive state, and
-Reports/backtest export.
+Position Management, Journal/adaptive state, and Reports/backtest export.
 
 ## Folder map
 
@@ -92,12 +108,15 @@ MQL5/
     │   ├── CLSAgent_SetupD_BMSContinuation.mqh
     │   ├── CLSAgent_ScoreEngine.mqh
     │   └── CLSAgent_DecisionEngine.mqh
-    └── Risk/                       <- Part 5
-        ├── CLSAgent_RiskEngine.mqh
-        ├── CLSAgent_BasketRisk.mqh
-        ├── CLSAgent_LotCalculator.mqh
-        ├── CLSAgent_DailyLimits.mqh
-        └── CLSAgent_NewsGuard.mqh
+    ├── Risk/                       <- Part 5
+    │   ├── CLSAgent_RiskEngine.mqh
+    │   ├── CLSAgent_BasketRisk.mqh
+    │   ├── CLSAgent_LotCalculator.mqh
+    │   ├── CLSAgent_DailyLimits.mqh
+    │   └── CLSAgent_NewsGuard.mqh
+    └── Execution/                  <- Part 6
+        ├── CLSAgent_BasketExecutor.mqh
+        └── CLSAgent_OrderSender.mqh
 ```
 
 ## Installing into MetaTrader 5
@@ -111,7 +130,9 @@ MQL5/
    `XAUUSD`, `EURUSD`, `GBPUSD` or `USDJPY`.
 
 `Mode` defaults to `SIGNAL_ONLY` and `AutoTrade` defaults to `false`, so attaching
-the EA right now cannot place any order — Part 1 has no execution logic at all yet.
+the EA right now cannot place any order regardless of how Basket Execution
+(Part 6) is configured — both `Mode=AUTO_TRADE` and `AutoTrade=true` must be
+set explicitly before `CLS_ExecuteBasketOrder()` will ever call `OrderSend()`.
 
 See the repository root for the full project specification and the part-by-part
 delivery plan.

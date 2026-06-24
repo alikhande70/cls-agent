@@ -10,9 +10,9 @@
 //|   Part 1 built the shell + Core. Part 2 wired the Context Engine   |
 //|   stage to the Market modules. Part 3 wired the Setup Detector     |
 //|   stage to Strategy/SetupDetector + Setup A/B/C/D. Part 4 wired    |
-//|   the Score/Decision Engine stage. Part 5 wires the Risk Engine    |
-//|   stage. Stages from Basket Execution onward remain named stubs    |
-//|   until Parts 6-9.                                                  |
+//|   the Score/Decision Engine stage. Part 5 wired the Risk Engine    |
+//|   stage. Part 6 wires the Basket Execution stage. Stages from       |
+//|   Position Manager onward remain named stubs until Parts 7-9.       |
 //+------------------------------------------------------------------+
 #property copyright "CLS Agent"
 #property link      ""
@@ -36,15 +36,17 @@
 #include <CLSAgent/Strategy/CLSAgent_ScoreEngine.mqh>
 #include <CLSAgent/Strategy/CLSAgent_DecisionEngine.mqh>
 #include <CLSAgent/Risk/CLSAgent_RiskEngine.mqh>
+#include <CLSAgent/Execution/CLSAgent_OrderSender.mqh>
+#include <CLSAgent/Execution/CLSAgent_BasketExecutor.mqh>
 
 //+------------------------------------------------------------------+
-//| Pipeline stage stubs still pending (Parts 6-9). Stage 1 (Context  |
-//| Engine) is BuildSetupContext() below; Stage 2 (Setup Detector) is  |
-//| CLS_DetectSetups(); Stage 3 (Score/Decision Engine) is             |
-//| CLS_DecideSignal(); Stage 4 (Risk Engine) is CLS_EvaluateRisk() -   |
-//| all called directly from OnTick().                                  |
+//| Pipeline stage stubs still pending (Parts 7-9). Stage 1 (Context   |
+//| Engine) is BuildSetupContext() below; Stage 2 (Setup Detector) is   |
+//| CLS_DetectSetups(); Stage 3 (Score/Decision Engine) is              |
+//| CLS_DecideSignal(); Stage 4 (Risk Engine) is CLS_EvaluateRisk();    |
+//| Stage 5 (Basket Execution) is CLS_ExecuteBasketOrder() - all        |
+//| called directly from OnTick().                                      |
 //+------------------------------------------------------------------+
-void Stage_BasketExecution_STUB(const SBasketInfo &basket) { /* Part 6: Execution/OrderSender, BasketExecutor */ }
 void Stage_PositionManager_STUB()                          { /* Part 7: Execution/PositionManager, PartialExit, Trailing */ }
 void Stage_JournalMemory_STUB()                            { /* Part 8: Memory/Journal, TradeLog, BasketLog, PerformanceStats */ }
 void Stage_ReportLLMReview_STUB()                           { /* Part 9: Reports/DebugPanel, BacktestReport, ExportCSV */ }
@@ -224,12 +226,11 @@ void OnTick()
       ctx.spreadPoints, (ctx.spreadAllowed ? "OK" : "BLOCKED"),
       (ctx.isContextValid ? "true" : "false")));
 
-   // Pipeline shape from here on - Parts 6-9 replace the remaining stub calls
+   // Pipeline shape from here on - Parts 7-9 replace the remaining stub calls
    // with real module calls, in order, without changing this call sequence.
    SSetupSignal  signal;
    SScoreResult  score;
    SRiskDecision risk;
-   SBasketInfo   basket;
 
    if(CLS_DetectSetups(ctx, signal))
    {
@@ -247,9 +248,13 @@ void OnTick()
          EnumToString(signal.setupType), CLS_DirectionToString(signal.direction),
          risk.lotSize, risk.basketRiskPercent, (approved ? "true" : "false"),
          (approved ? "" : (" reason=" + CLS_RejectReasonToString(risk.rejectReason)))));
+
+      // Logs its own outcome (Mode/AutoTrade veto, or the broker's fill/reject) -
+      // see CLSAgent_BasketExecutor.mqh. Safe to call unconditionally: it is a
+      // silent no-op whenever risk.isApproved is false.
+      CLS_ExecuteBasketOrder(ctx, signal, risk);
    }
 
-   Stage_BasketExecution_STUB(basket);
    Stage_PositionManager_STUB();
    Stage_JournalMemory_STUB();
    Stage_ReportLLMReview_STUB();
