@@ -13,6 +13,7 @@
 #ifndef CLSAGENT_SETUPD_BMSCONTINUATION_MQH
 #define CLSAGENT_SETUPD_BMSCONTINUATION_MQH
 
+#include "../Core/CLSAgent_Constants.mqh"
 #include "../Core/CLSAgent_Types.mqh"
 #include "../Core/CLSAgent_Inputs.mqh"
 #include "CLSAgent_SetupContext.mqh"
@@ -24,14 +25,16 @@ struct SBMSState
    bool                armed;
    ENUM_CLS_DIRECTION  direction;
    double              breakLevel;
+   double              breakBodyStrength; // 0..1, breakout candle's body/ATR ratio - reused as rawStrength when the pullback fires
    int                 barsSinceBreak;
 
    SBMSState()
    {
-      armed          = false;
-      direction      = CLS_DIR_NONE;
-      breakLevel     = 0.0;
-      barsSinceBreak = 0;
+      armed             = false;
+      direction         = CLS_DIR_NONE;
+      breakLevel        = 0.0;
+      breakBodyStrength = 0.0;
+      barsSinceBreak    = 0;
    }
 };
 
@@ -61,14 +64,15 @@ bool CLS_DetectSetupD_BMSContinuation(const SSetupContext &ctx, SSetupSignal &si
          }
          else if(close1 > open1)
          {
-            signal.setupType  = CLS_SETUP_D_BMS_CONTINUATION;
-            signal.direction  = CLS_DIR_BUY;
-            signal.barTime    = ctx.barTime;
-            signal.entryPrice = close1;
+            signal.setupType   = CLS_SETUP_D_BMS_CONTINUATION;
+            signal.direction   = CLS_DIR_BUY;
+            signal.barTime     = ctx.barTime;
+            signal.entryPrice  = close1;
             CLS_BuildStopsFromATR(CLS_DIR_BUY, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                                    signal.stopLoss, signal.takeProfit);
-            signal.stopLoss = MathMin(signal.stopLoss, g_BMSState.breakLevel - ctx.atrValue * 0.1);
-            signal.isValid  = true;
+            signal.stopLoss    = MathMin(signal.stopLoss, g_BMSState.breakLevel - ctx.atrValue * 0.1);
+            signal.rawStrength = g_BMSState.breakBodyStrength;
+            signal.isValid     = true;
             g_BMSState.armed = false; // one shot per break
             return true;
          }
@@ -81,14 +85,15 @@ bool CLS_DetectSetupD_BMSContinuation(const SSetupContext &ctx, SSetupSignal &si
          }
          else if(close1 < open1)
          {
-            signal.setupType  = CLS_SETUP_D_BMS_CONTINUATION;
-            signal.direction  = CLS_DIR_SELL;
-            signal.barTime    = ctx.barTime;
-            signal.entryPrice = close1;
+            signal.setupType   = CLS_SETUP_D_BMS_CONTINUATION;
+            signal.direction   = CLS_DIR_SELL;
+            signal.barTime     = ctx.barTime;
+            signal.entryPrice  = close1;
             CLS_BuildStopsFromATR(CLS_DIR_SELL, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                                    signal.stopLoss, signal.takeProfit);
-            signal.stopLoss = MathMax(signal.stopLoss, g_BMSState.breakLevel + ctx.atrValue * 0.1);
-            signal.isValid  = true;
+            signal.stopLoss    = MathMax(signal.stopLoss, g_BMSState.breakLevel + ctx.atrValue * 0.1);
+            signal.rawStrength = g_BMSState.breakBodyStrength;
+            signal.isValid     = true;
             g_BMSState.armed = false;
             return true;
          }
@@ -110,22 +115,25 @@ bool CLS_DetectSetupD_BMSContinuation(const SSetupContext &ctx, SSetupSignal &si
                                                swingLow, swingLowShift);
 
    const double minBody = ctx.atrValue * InpBMSMinBodyATRPct;
+   const double bodyStrength = MathMin(1.0, body1 / MathMax(ctx.atrValue, CLS_PRICE_EPSILON));
 
    if(hasSwingHigh && close1 > swingHigh && body1 >= minBody && close1 > open1)
    {
-      g_BMSState.armed          = true;
-      g_BMSState.direction      = CLS_DIR_BUY;
-      g_BMSState.breakLevel     = swingHigh;
-      g_BMSState.barsSinceBreak = 0;
+      g_BMSState.armed             = true;
+      g_BMSState.direction         = CLS_DIR_BUY;
+      g_BMSState.breakLevel        = swingHigh;
+      g_BMSState.breakBodyStrength = bodyStrength;
+      g_BMSState.barsSinceBreak    = 0;
       return false; // armed now, continuation entry fires on a later pullback bar
    }
 
    if(hasSwingLow && close1 < swingLow && body1 >= minBody && close1 < open1)
    {
-      g_BMSState.armed          = true;
-      g_BMSState.direction      = CLS_DIR_SELL;
-      g_BMSState.breakLevel     = swingLow;
-      g_BMSState.barsSinceBreak = 0;
+      g_BMSState.armed             = true;
+      g_BMSState.direction         = CLS_DIR_SELL;
+      g_BMSState.breakLevel        = swingLow;
+      g_BMSState.breakBodyStrength = bodyStrength;
+      g_BMSState.barsSinceBreak    = 0;
       return false;
    }
 

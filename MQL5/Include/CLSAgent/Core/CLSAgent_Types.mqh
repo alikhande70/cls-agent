@@ -147,17 +147,19 @@ struct SSetupSignal
    double              entryPrice;
    double              stopLoss;
    double              takeProfit;
+   double              rawStrength; // 0..1, setup-specific trigger quality - filled by the detector that fired (Part 4 Score Engine input)
    bool                isValid;
 
    SSetupSignal()
    {
-      setupType  = CLS_SETUP_NONE;
-      direction  = CLS_DIR_NONE;
-      barTime    = 0;
-      entryPrice = 0.0;
-      stopLoss   = 0.0;
-      takeProfit = 0.0;
-      isValid    = false;
+      setupType   = CLS_SETUP_NONE;
+      direction   = CLS_DIR_NONE;
+      barTime     = 0;
+      entryPrice  = 0.0;
+      stopLoss    = 0.0;
+      takeProfit  = 0.0;
+      rawStrength = 0.0;
+      isValid     = false;
    }
 };
 

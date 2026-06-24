@@ -8,9 +8,10 @@
 //|   Execution -> Position Manager -> Journal/Memory -> Report.      |
 //|                                                                    |
 //|   Part 1 built the shell + Core. Part 2 wired the Context Engine   |
-//|   stage to the Market modules. Part 3 wires the Setup Detector     |
-//|   stage to Strategy/SetupDetector + Setup A/B/C/D. Stages from     |
-//|   Score Engine onward remain named stubs until Parts 4-9.          |
+//|   stage to the Market modules. Part 3 wired the Setup Detector     |
+//|   stage to Strategy/SetupDetector + Setup A/B/C/D. Part 4 wires    |
+//|   the Score/Decision Engine stage. Stages from Risk Engine onward  |
+//|   remain named stubs until Parts 5-9.                              |
 //+------------------------------------------------------------------+
 #property copyright "CLS Agent"
 #property link      ""
@@ -31,13 +32,15 @@
 #include <CLSAgent/Market/CLSAgent_ATRRegime.mqh>
 #include <CLSAgent/Market/CLSAgent_LevelCache.mqh>
 #include <CLSAgent/Strategy/CLSAgent_SetupDetector.mqh>
+#include <CLSAgent/Strategy/CLSAgent_ScoreEngine.mqh>
+#include <CLSAgent/Strategy/CLSAgent_DecisionEngine.mqh>
 
 //+------------------------------------------------------------------+
-//| Pipeline stage stubs still pending (Parts 4-9). Stage 1 (Context  |
+//| Pipeline stage stubs still pending (Parts 5-9). Stage 1 (Context  |
 //| Engine) is BuildSetupContext() below; Stage 2 (Setup Detector) is  |
-//| CLS_DetectSetups(), called directly from OnTick().                 |
+//| CLS_DetectSetups(); Stage 3 (Score/Decision Engine) is             |
+//| CLS_DecideSignal() - all called directly from OnTick().            |
 //+------------------------------------------------------------------+
-void Stage_ScoreEngine_STUB(const SScoreResult &score)     { /* Part 4: Strategy/ScoreEngine + DecisionEngine */ }
 void Stage_RiskEngine_STUB(const SRiskDecision &risk)      { /* Part 5: Risk/RiskEngine, BasketRisk, LotCalculator, DailyLimits */ }
 void Stage_BasketExecution_STUB(const SBasketInfo &basket) { /* Part 6: Execution/OrderSender, BasketExecutor */ }
 void Stage_PositionManager_STUB()                          { /* Part 7: Execution/PositionManager, PartialExit, Trailing */ }
@@ -219,7 +222,7 @@ void OnTick()
       ctx.spreadPoints, (ctx.spreadAllowed ? "OK" : "BLOCKED"),
       (ctx.isContextValid ? "true" : "false")));
 
-   // Pipeline shape from here on - Parts 4-9 replace the remaining stub calls
+   // Pipeline shape from here on - Parts 5-9 replace the remaining stub calls
    // with real module calls, in order, without changing this call sequence.
    SSetupSignal  signal;
    SScoreResult  score;
@@ -228,13 +231,15 @@ void OnTick()
 
    if(CLS_DetectSetups(ctx, signal))
    {
-      CLS_Log(CLS_LOG_INFO, "Setup", StringFormat(
-         "%s detected: dir=%s entry=%.5f SL=%.5f TP=%.5f",
+      const bool accepted = CLS_DecideSignal(ctx, signal, score);
+      CLS_Log(accepted ? CLS_LOG_INFO : CLS_LOG_WARNING, "Score", StringFormat(
+         "%s dir=%s entry=%.5f SL=%.5f TP=%.5f score=%.1f(min=%.1f) status=%s%s",
          EnumToString(signal.setupType), CLS_DirectionToString(signal.direction),
-         signal.entryPrice, signal.stopLoss, signal.takeProfit));
+         signal.entryPrice, signal.stopLoss, signal.takeProfit,
+         score.score, g_SymbolProfile.minScoreToTrade, EnumToString(score.status),
+         (accepted ? "" : (" reason=" + CLS_RejectReasonToString(score.rejectReason)))));
    }
 
-   Stage_ScoreEngine_STUB(score);
    Stage_RiskEngine_STUB(risk);
    Stage_BasketExecution_STUB(basket);
    Stage_PositionManager_STUB();

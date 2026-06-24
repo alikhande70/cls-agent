@@ -10,6 +10,7 @@
 #ifndef CLSAGENT_SETUPC_FVGFILL_MQH
 #define CLSAGENT_SETUPC_FVGFILL_MQH
 
+#include "../Core/CLSAgent_Constants.mqh"
 #include "../Core/CLSAgent_Types.mqh"
 #include "../Core/CLSAgent_Inputs.mqh"
 #include "CLSAgent_SetupContext.mqh"
@@ -50,14 +51,15 @@ bool CLS_DetectSetupC_FVGFill(const SSetupContext &ctx, SSetupSignal &signal)
       const bool rejectedUp    = (close1 > open1) && (close1 >= bullLow);
       if(tradedIntoGap && rejectedUp)
       {
-         signal.setupType  = CLS_SETUP_C_FVG_FILL;
-         signal.direction  = CLS_DIR_BUY;
-         signal.barTime    = ctx.barTime;
-         signal.entryPrice = close1;
+         signal.setupType   = CLS_SETUP_C_FVG_FILL;
+         signal.direction   = CLS_DIR_BUY;
+         signal.barTime     = ctx.barTime;
+         signal.entryPrice  = close1;
          CLS_BuildStopsFromATR(CLS_DIR_BUY, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                                 signal.stopLoss, signal.takeProfit);
-         signal.stopLoss = MathMin(signal.stopLoss, bullLow - ctx.atrValue * 0.1);
-         signal.isValid  = true;
+         signal.stopLoss    = MathMin(signal.stopLoss, bullLow - ctx.atrValue * 0.1);
+         signal.rawStrength = MathMin(1.0, (bullHigh - bullLow) / MathMax(ctx.atrValue, CLS_PRICE_EPSILON));
+         signal.isValid     = true;
          return true;
       }
    }
@@ -68,14 +70,15 @@ bool CLS_DetectSetupC_FVGFill(const SSetupContext &ctx, SSetupSignal &signal)
       const bool rejectedDown  = (close1 < open1) && (close1 <= bearHigh);
       if(tradedIntoGap && rejectedDown)
       {
-         signal.setupType  = CLS_SETUP_C_FVG_FILL;
-         signal.direction  = CLS_DIR_SELL;
-         signal.barTime    = ctx.barTime;
-         signal.entryPrice = close1;
+         signal.setupType   = CLS_SETUP_C_FVG_FILL;
+         signal.direction   = CLS_DIR_SELL;
+         signal.barTime     = ctx.barTime;
+         signal.entryPrice  = close1;
          CLS_BuildStopsFromATR(CLS_DIR_SELL, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                                 signal.stopLoss, signal.takeProfit);
-         signal.stopLoss = MathMax(signal.stopLoss, bearHigh + ctx.atrValue * 0.1);
-         signal.isValid  = true;
+         signal.stopLoss    = MathMax(signal.stopLoss, bearHigh + ctx.atrValue * 0.1);
+         signal.rawStrength = MathMin(1.0, (bearHigh - bearLow) / MathMax(ctx.atrValue, CLS_PRICE_EPSILON));
+         signal.isValid     = true;
          return true;
       }
    }

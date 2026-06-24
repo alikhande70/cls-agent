@@ -8,7 +8,7 @@ it never sends an order — that boundary is enforced in code, not just by conve
 
 ## Build status
 
-**Parts 1-3 of 10 done — Project Skeleton, Market Foundation, Setup Detection.**
+**Parts 1-4 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine.**
 
 Implemented so far:
 - **Part 1 — Core.** Folder skeleton for every module, fixed safety constants
@@ -30,10 +30,23 @@ Implemented so far:
   structure + pullback entry, the one stateful setup). `SetupDetector` tries
   A→B→C→D in order and stops at the first valid signal. Wired into `OnTick()`
   directly (no stub remains for this stage).
+- **Part 4 — Strategy / Score &amp; Decision Engine.** Every Setup A-D detector now
+  also grades its own trigger quality into `signal.rawStrength` (0..1 — pierce
+  depth/ATR for the sweeps, gap size/ATR for FVG Fill, breakout body/ATR for BMS).
+  `ScoreEngine` combines that with three continuous context multipliers (session,
+  ATR regime, spread-vs-cap) into a single multiplicative 0..100 score:
+  `score = 100 * rawStrength * sessionFactor * atrFactor * spreadFactor`.
+  `DecisionEngine` is a pure score gate — it accepts/rejects purely against
+  `g_SymbolProfile.minScoreToTrade` (Rule #8: Gold and Forex each resolve their
+  own threshold). The hard environmental gates from Rule #7 (spread/session/ATR
+  regime/daily-loss) are *not* enforced here; they belong to the Risk Engine
+  (Part 5), which still runs after this stage regardless of the verdict so every
+  signal — accepted or rejected — reaches the Journal later (Rule #9). Wired into
+  `OnTick()` directly (no stub remains for this stage).
 
 Not implemented yet (later parts, do not edit ahead of schedule):
-Score Engine/Decision Engine, Risk Engine, Basket Execution, Position Management,
-Journal/adaptive state, and Reports/backtest export.
+Risk Engine, Basket Execution, Position Management, Journal/adaptive state, and
+Reports/backtest export.
 
 ## Folder map
 
@@ -54,13 +67,15 @@ MQL5/
     │   ├── CLSAgent_SpreadBuffer.mqh
     │   ├── CLSAgent_ATRRegime.mqh
     │   └── CLSAgent_LevelCache.mqh
-    └── Strategy/                   <- Part 3
+    └── Strategy/                   <- Parts 3-4
         ├── CLSAgent_SetupContext.mqh
         ├── CLSAgent_SetupDetector.mqh
         ├── CLSAgent_SetupA_AsianSweep.mqh
         ├── CLSAgent_SetupB_DailyHunt.mqh
         ├── CLSAgent_SetupC_FVGFill.mqh
-        └── CLSAgent_SetupD_BMSContinuation.mqh
+        ├── CLSAgent_SetupD_BMSContinuation.mqh
+        ├── CLSAgent_ScoreEngine.mqh     <- Part 4
+        └── CLSAgent_DecisionEngine.mqh  <- Part 4
 ```
 
 ## Installing into MetaTrader 5

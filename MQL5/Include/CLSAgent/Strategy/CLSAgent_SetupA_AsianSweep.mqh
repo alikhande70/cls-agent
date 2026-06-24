@@ -10,6 +10,7 @@
 #ifndef CLSAGENT_SETUPA_ASIANSWEEP_MQH
 #define CLSAGENT_SETUPA_ASIANSWEEP_MQH
 
+#include "../Core/CLSAgent_Constants.mqh"
 #include "../Core/CLSAgent_Types.mqh"
 #include "../Core/CLSAgent_Inputs.mqh"
 #include "../Market/CLSAgent_LevelCache.mqh"
@@ -36,28 +37,30 @@ bool CLS_DetectSetupA_AsianSweep(const SSetupContext &ctx, SSetupSignal &signal)
    // Bearish sweep: pierced above the Asian high, closed back below it.
    if(high1 > g_Levels.asianHigh + minPierce && close1 < g_Levels.asianHigh)
    {
-      signal.setupType  = CLS_SETUP_A_ASIAN_SWEEP;
-      signal.direction  = CLS_DIR_SELL;
-      signal.barTime    = ctx.barTime;
-      signal.entryPrice = close1;
+      signal.setupType   = CLS_SETUP_A_ASIAN_SWEEP;
+      signal.direction   = CLS_DIR_SELL;
+      signal.barTime     = ctx.barTime;
+      signal.entryPrice  = close1;
       CLS_BuildStopsFromATR(CLS_DIR_SELL, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                              signal.stopLoss, signal.takeProfit);
-      signal.stopLoss = MathMax(signal.stopLoss, high1 + ctx.atrValue * 0.1); // clear the sweep wick
-      signal.isValid  = true;
+      signal.stopLoss    = MathMax(signal.stopLoss, high1 + ctx.atrValue * 0.1); // clear the sweep wick
+      signal.rawStrength = MathMin(1.0, (high1 - g_Levels.asianHigh) / MathMax(ctx.atrValue, CLS_PRICE_EPSILON));
+      signal.isValid     = true;
       return true;
    }
 
    // Bullish sweep: pierced below the Asian low, closed back above it.
    if(low1 < g_Levels.asianLow - minPierce && close1 > g_Levels.asianLow)
    {
-      signal.setupType  = CLS_SETUP_A_ASIAN_SWEEP;
-      signal.direction  = CLS_DIR_BUY;
-      signal.barTime    = ctx.barTime;
-      signal.entryPrice = close1;
+      signal.setupType   = CLS_SETUP_A_ASIAN_SWEEP;
+      signal.direction   = CLS_DIR_BUY;
+      signal.barTime     = ctx.barTime;
+      signal.entryPrice  = close1;
       CLS_BuildStopsFromATR(CLS_DIR_BUY, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                              signal.stopLoss, signal.takeProfit);
-      signal.stopLoss = MathMin(signal.stopLoss, low1 - ctx.atrValue * 0.1);
-      signal.isValid  = true;
+      signal.stopLoss    = MathMin(signal.stopLoss, low1 - ctx.atrValue * 0.1);
+      signal.rawStrength = MathMin(1.0, (g_Levels.asianLow - low1) / MathMax(ctx.atrValue, CLS_PRICE_EPSILON));
+      signal.isValid     = true;
       return true;
    }
 
