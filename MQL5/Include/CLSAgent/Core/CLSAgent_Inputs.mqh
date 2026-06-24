@@ -46,6 +46,15 @@ input ENUM_TIMEFRAMES  InpATRTimeframe          = PERIOD_H1;  // Timeframe used 
 input double           InpATRRegimeHighMult     = 1.5;        // ATR multiple above average => HIGH regime
 input double           InpATRRegimeExtremeMult  = 2.5;        // ATR multiple above average => EXTREME regime (blocks entries)
 
+input group "==== CLS Agent | Setup Detection (Part 3) ===="
+input int    InpSwingLookbackBars     = 20;   // Bars scanned back when searching for a swing high/low pivot
+input int    InpFractalWingBars       = 2;    // Bars required on each side to confirm a fractal swing pivot
+input double InpStopLossATRMultiplier = 1.2;  // Stop-loss distance = ATR * this multiplier
+input double InpTakeProfitRMultiple   = 1.5;  // Take-profit distance = stop distance * this R-multiple
+input double InpSweepMinPierceATRFrac = 0.15; // Min pierce beyond a swept level, as a fraction of ATR, to count as a real sweep
+input double InpFVGMinSizeATRFrac     = 0.10; // Min Fair Value Gap size, as a fraction of ATR, to be tradeable
+input double InpBMSMinBodyATRPct      = 0.50; // Min breakout candle body size, as a fraction of ATR, to confirm a valid BMS break
+
 input group "==== CLS Agent | Score Engine (used from Part 4) ===="
 input double InpMinScoreToTradeGold  = 65.0; // Minimum multiplicative score required for Gold
 input double InpMinScoreToTradeForex = 60.0; // Minimum multiplicative score required for Forex majors

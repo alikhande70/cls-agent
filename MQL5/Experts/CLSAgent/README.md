@@ -8,32 +8,32 @@ it never sends an order — that boundary is enforced in code, not just by conve
 
 ## Build status
 
-**Part 1 of 10 — Project Skeleton + Core Types + Inputs + Constants + Main EA Shell.**
+**Parts 1-3 of 10 done — Project Skeleton, Market Foundation, Setup Detection.**
 
-Implemented in this part:
-- Folder skeleton for every future module (`Market/`, `Strategy/`, `Risk/`,
-  `Execution/`, `Memory/`, `Reports/`, `Tests/`) and the `Files/CLSAgent/` runtime
-  output tree (`logs/`, `reports/`, `state/`).
-- `Core/CLSAgent_Constants.mqh` — fixed safety constants (e.g.
-  `CLS_NO_ADD_TO_LOSING_BASKET`, `CLS_LLM_CAN_SEND_ORDERS`), magic-number layout.
-- `Core/CLSAgent_Types.mqh` — shared enums (`ENUM_CLS_MODE`, `ENUM_CLS_SETUP_TYPE`,
-  `ENUM_CLS_REJECT_REASON`, ...) and the data-contract structs passed between
-  pipeline stages (`SSetupContext`, `SSetupSignal`, `SScoreResult`, `SRiskDecision`,
-  `SBasketInfo`).
-- `Core/CLSAgent_Inputs.mqh` — every EA input, grouped by module.
-- `Core/CLSAgent_State.mqh` — runtime state (`g_State`), closed-bar detection,
-  daily-rollover detection.
-- `Core/CLSAgent_Utils.mqh` — centralized logging (`CLS_Log`) and small helpers.
-- `CLSAgent.mq5` — the EA shell: `OnInit`/`OnTick`/`OnDeinit`, input validation,
-  Gold-vs-Forex auto-detection, and one named stub function per pipeline stage
-  (Context Engine → Setup Detector → Score Engine → Risk Engine → Basket
-  Execution → Position Manager → Journal → Report/LLM Review). The stubs are
-  empty — they exist so the pipeline's shape and call order are fixed from Part 1
-  onward; later parts fill in their bodies without changing `CLSAgent.mq5` itself.
+Implemented so far:
+- **Part 1 — Core.** Folder skeleton for every module, fixed safety constants
+  (`CLS_NO_ADD_TO_LOSING_BASKET`, `CLS_LLM_CAN_SEND_ORDERS`), shared enums/structs
+  (`SSetupContext`, `SSetupSignal`, `SScoreResult`, `SRiskDecision`, `SBasketInfo`),
+  every EA input grouped by module, runtime state (`g_State`), closed-bar/daily-
+  rollover detection, centralized logging.
+- **Part 2 — Market.** `SymbolProfile` (Gold-vs-Forex detection, broker trading
+  constraints), `TimeSession` (Asian/London/NewYork/Overlap), `Indicators` (ATR
+  handle lifecycle), `SpreadBuffer` (rolling tick-spread average), `ATRRegime`
+  (LOW/NORMAL/HIGH/EXTREME volatility classification), `LevelCache` (previous-day
+  and Asian-session high/low, recomputed once per broker day). Wired into the
+  Context Engine stage (`BuildSetupContext()` in `CLSAgent.mq5`).
+- **Part 3 — Strategy / Setup Detection.** `SetupContext` (shared candle-anatomy,
+  fractal swing-pivot, Fair-Value-Gap and ATR-based stop/target helpers — every
+  read enforces shift≥1, never the forming bar), and four deterministic setups:
+  **A** Asian Sweep, **B** Daily Hunt (previous-day liquidity sweep), **C** FVG
+  Fill (return-to-imbalance continuation), **D** BMS Continuation (break of
+  structure + pullback entry, the one stateful setup). `SetupDetector` tries
+  A→B→C→D in order and stops at the first valid signal. Wired into `OnTick()`
+  directly (no stub remains for this stage).
 
 Not implemented yet (later parts, do not edit ahead of schedule):
-Market context, setup detection, scoring, risk engine, basket execution, position
-management, journal/adaptive state, and reporting/backtest export.
+Score Engine/Decision Engine, Risk Engine, Basket Execution, Position Management,
+Journal/adaptive state, and Reports/backtest export.
 
 ## Folder map
 
@@ -41,12 +41,26 @@ management, journal/adaptive state, and reporting/backtest export.
 MQL5/
 ├── Experts/CLSAgent/CLSAgent.mq5   <- compile this file in MetaEditor
 └── Include/CLSAgent/
-    └── Core/                       <- Part 1 (this part)
-        ├── CLSAgent_Constants.mqh
-        ├── CLSAgent_Types.mqh
-        ├── CLSAgent_Inputs.mqh
-        ├── CLSAgent_State.mqh
-        └── CLSAgent_Utils.mqh
+    ├── Core/                       <- Part 1
+    │   ├── CLSAgent_Constants.mqh
+    │   ├── CLSAgent_Types.mqh
+    │   ├── CLSAgent_Inputs.mqh
+    │   ├── CLSAgent_State.mqh
+    │   └── CLSAgent_Utils.mqh
+    ├── Market/                     <- Part 2
+    │   ├── CLSAgent_SymbolProfile.mqh
+    │   ├── CLSAgent_TimeSession.mqh
+    │   ├── CLSAgent_Indicators.mqh
+    │   ├── CLSAgent_SpreadBuffer.mqh
+    │   ├── CLSAgent_ATRRegime.mqh
+    │   └── CLSAgent_LevelCache.mqh
+    └── Strategy/                   <- Part 3
+        ├── CLSAgent_SetupContext.mqh
+        ├── CLSAgent_SetupDetector.mqh
+        ├── CLSAgent_SetupA_AsianSweep.mqh
+        ├── CLSAgent_SetupB_DailyHunt.mqh
+        ├── CLSAgent_SetupC_FVGFill.mqh
+        └── CLSAgent_SetupD_BMSContinuation.mqh
 ```
 
 ## Installing into MetaTrader 5
