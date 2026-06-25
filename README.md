@@ -35,7 +35,7 @@ logic itself, it only calls into the pipeline stages below in order:
 |---|---|---|
 | Core | `Core/` | Shared types, constants, and EA lifecycle wiring |
 | Market | `Market/` | Price/indicator context, session and news state |
-| Strategy | `Strategy/` | Setup detection (A–E) and the Score Engine |
+| Strategy | `Strategy/` | Setup detection (A–D) and the Score Engine |
 | Risk | `Risk/` | Position sizing, loss protection, basket risk limits, news/session gates |
 | Execution | `Execution/` | Order sending, retries, slippage/partial-fill handling |
 | Memory | `Memory/` | Adaptive state persisted across ticks/restarts |
@@ -58,8 +58,10 @@ safety rules contributions must preserve.
 
 - Core architecture (Core / Market / Strategy / Risk / Execution / Memory
   / Reporting) is implemented end-to-end.
-- Setup detection (A–E), the Score Engine, loss-streak protection, and
-  partial-fill/slippage handling are implemented.
+- Setup detection (A–D) and the Score Engine are implemented. Loss-streak
+  protection and dedicated partial-fill handling are not implemented in
+  this codebase yet (basic order retry with slippage tolerance is — see
+  `Execution/CLSAgent_OrderSender.mqh`).
 - MetaEditor compile verification: **pending** — not yet confirmed clean
   on a real MetaTrader 5 installation.
 - Strategy Tester backtest validation: **pending** — no backtest report
@@ -125,6 +127,22 @@ Always validate in the Strategy Tester before any demo or live use:
 
 Full pass/fail criteria and required outputs are documented in
 [TESTING.md](TESTING.md).
+
+## Advanced / dangerous inputs and reserved modes
+
+- **`InpSuperBurst` (default `false`).** When enabled, the Risk Engine's
+  basket-full check (`InpMaxOrdersPerBasket`) is skipped, allowing a
+  basket to grow beyond its configured order-count limit. This is an
+  advanced override for deliberate, supervised testing only — leave it
+  `false` unless you understand and accept the uncapped-basket-size risk
+  it introduces. It must stay disabled by default and should not be
+  enabled on a demo or live account.
+- **`Mode = SEMI_AUTO`.** `ENUM_CLS_MODE` defines a `CLS_MODE_SEMI_AUTO`
+  value, but no manual-confirmation workflow exists yet to back it.
+  Execution is only permitted when `Mode == AUTO_TRADE`, so selecting
+  `SEMI_AUTO` currently behaves like `SIGNAL_ONLY` (no orders sent).
+  Treat `SEMI_AUTO` as **reserved for a future release, not an active
+  feature** — use `SIGNAL_ONLY` or `AUTO_TRADE` instead.
 
 ## Using with MCP / Claude Code
 

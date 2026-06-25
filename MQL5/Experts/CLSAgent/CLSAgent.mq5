@@ -93,6 +93,8 @@ bool ValidateInputs()
    }
    if(InpAutoTrade && InpMode == CLS_MODE_SIGNAL_ONLY)
       CLS_Log(CLS_LOG_WARNING, "Init", "InpAutoTrade=true but Mode=SIGNAL_ONLY: no orders will be sent regardless.");
+   if(InpMode == CLS_MODE_SEMI_AUTO)
+      CLS_Log(CLS_LOG_WARNING, "Init", "Mode=SEMI_AUTO is reserved for a future release (no manual-confirmation workflow exists yet) - behaves like SIGNAL_ONLY, no orders will be sent.");
 
    return true;
 }

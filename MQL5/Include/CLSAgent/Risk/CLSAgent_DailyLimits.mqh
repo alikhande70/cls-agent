@@ -6,6 +6,13 @@
 //|   baseline equity is captured once per broker day by               |
 //|   CLS_State_RolloverDayIfNeeded() (Part 1/Core); this module only  |
 //|   compares current equity against that baseline.                   |
+//|                                                                    |
+//|   This module only reports the boolean - it takes no action.      |
+//|   Two separate call sites act on it: RiskEngine.mqh blocks new      |
+//|   entries (CLS_REJECT_DAILY_LOSS) once per signal, and CLSAgent.mq5's |
+//|   OnTick() additionally calls CLS_FlattenAllPositions() every tick    |
+//|   once this is true, closing any already-open exposure immediately    |
+//|   rather than leaving it to run unmanaged for the rest of the day.     |
 //+------------------------------------------------------------------+
 #ifndef CLSAGENT_DAILYLIMITS_MQH
 #define CLSAGENT_DAILYLIMITS_MQH

@@ -11,6 +11,8 @@ release. Versions are only advanced once their stated criteria are met
 - Professional documentation: README, LICENSE, DISCLAIMER, CONTRIBUTING,
   CHANGELOG, ROADMAP, TESTING.
 - Download and MCP/Claude Code readiness (clone, inspect, test locally).
+- Daily Loss Limit hardening: a breach now flattens existing open
+  positions immediately (every tick), not just new entries.
 
 ## v0.2.0 — Compile verified
 
@@ -23,7 +25,7 @@ release. Versions are only advanced once their stated criteria are met
 
 - Published `XAUUSD` backtest report.
 - Published `EURUSD` / `GBPUSD` / `USDJPY` backtest reports.
-- Per-setup (A/B/C/D/E) performance review based on `performance.csv`.
+- Per-setup (A/B/C/D) performance review based on `performance.csv`.
 
 ## v0.4.0 — Demo forward testing
 

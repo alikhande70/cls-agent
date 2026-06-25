@@ -4,6 +4,21 @@ This document describes how to compile and test CLS Agent before any
 demo or live use. Do not skip the `SIGNAL_ONLY` Strategy Tester pass —
 it is the cheapest way to catch a problem before it can place an order.
 
+**No real-money account should be used before, in order: (1) a clean
+MetaEditor compile, (2) a clean `SIGNAL_ONLY` Strategy Tester run, (3) a
+clean `AutoTrade = true` Strategy Tester run, and (4) demo-account
+forward testing over a meaningful sample of trades.** This document is
+not a claim that the EA is live-ready — see [DISCLAIMER.md](DISCLAIMER.md).
+
+## Compile / backtest readiness checklist
+
+- [ ] MetaEditor compile: **pending**
+- [ ] Strategy Tester, `Mode = SIGNAL_ONLY`: **pending**
+- [ ] Strategy Tester, `AutoTrade = true`: **pending**
+- [ ] Demo forward test: **pending**
+- [ ] Live trading: **not recommended** (no compile/backtest/demo
+      evidence has been published yet for this codebase)
+
 ## Compiling in MetaEditor
 
 1. Open MetaTrader 5 → **File → Open Data Folder**.
@@ -54,7 +69,7 @@ A completed test run should produce, under `MQL5/Files/CLSAgent/`:
 - `logs/journal.csv` — tick-by-tick decision journal.
 - `reports/trades.csv` — individual trade records.
 - `reports/baskets.csv` — basket-level grouping and outcomes.
-- `reports/performance.csv` — per-setup (A/B/C/D/E) performance breakdown.
+- `reports/performance.csv` — per-setup (A/B/C/D) performance breakdown.
 - `reports/backtest_summary.txt` — human-readable run summary.
 
 Also save the Strategy Tester's own report (**Strategy Tester → Report

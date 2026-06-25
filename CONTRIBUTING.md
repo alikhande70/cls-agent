@@ -49,6 +49,14 @@ suggestion doesn't fit a bug report.
 - Do not add any code path that allows an LLM or other external agent to
   send orders directly. Rule #1 — the LLM never sends orders — is
   structural, not a flag, and must stay that way.
+- Do not change the default `InpMode` away from `CLS_MODE_SIGNAL_ONLY`,
+  and do not change the default `InpAutoTrade` away from `false`.
+  Attaching the EA with no input changes must never be able to place an
+  order.
+- Do not enable `InpSuperBurst` by default, and do not make it easier to
+  enable in a live/demo context (e.g. via a separate "live mode" preset).
+  It is an advanced override that bypasses `InpMaxOrdersPerBasket` and
+  must stay an explicit, deliberate opt-in.
 
 ## Out of scope without prior discussion
 
