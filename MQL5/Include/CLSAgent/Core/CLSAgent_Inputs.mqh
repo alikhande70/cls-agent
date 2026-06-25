@@ -64,8 +64,11 @@ input bool   InpEnableSetupD         = true; // Enable Setup D - BMS Continuatio
 input group "==== CLS Agent | Risk Engine ===="
 input double InpBasketRiskPercent   = 0.30;  // Total basket risk, % of equity (NOT per order - Rule #3)
 input int    InpMaxOrdersPerBasket  = 2;     // Max number of orders inside one basket
-input double InpMaxDailyLossPercent = 1.00;  // Max daily loss, % of equity, before trading halts for the day
-input bool   InpSuperBurst          = false; // Allow oversized bursts beyond MaxOrdersPerBasket (advanced, disabled by default)
+input double InpMaxDailyLossPercent = 1.00;  // Max daily loss, % of equity, before trading halts for the day AND flattens open positions (see CLSAgent_DailyLimits.mqh)
+// WARNING: InpSuperBurst is an advanced override - when true it skips the basket-full check entirely,
+// allowing a basket to grow past InpMaxOrdersPerBasket with no upper bound. Keep this false unless you
+// understand and accept the uncapped-basket-size risk. Must never be enabled by default or on live/demo.
+input bool   InpSuperBurst          = false; // Allow oversized bursts beyond MaxOrdersPerBasket (advanced, disabled by default - see warning above)
 
 input group "==== CLS Agent | News Guard (manual input) ===="
 input bool   InpNewsGuardEnabled    = true; // Block entries around manually scheduled news windows

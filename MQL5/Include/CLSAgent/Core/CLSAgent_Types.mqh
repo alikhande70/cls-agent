@@ -15,7 +15,9 @@
 enum ENUM_CLS_MODE
 {
    CLS_MODE_SIGNAL_ONLY = 0,   // Analyze & log only, never sends orders
-   CLS_MODE_SEMI_AUTO   = 1,   // Requires manual confirmation before sending
+   CLS_MODE_SEMI_AUTO   = 1,   // Reserved for a future release - no manual-confirmation workflow exists yet.
+                                // Execution requires Mode==AUTO_TRADE (see CLSAgent.mq5), so selecting this
+                                // today behaves like SIGNAL_ONLY (no orders sent). Not an active feature.
    CLS_MODE_AUTO_TRADE  = 2    // Fully automatic execution under Risk Engine rules
 };
 

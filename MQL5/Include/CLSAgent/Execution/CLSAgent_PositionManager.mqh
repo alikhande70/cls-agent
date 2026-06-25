@@ -110,4 +110,61 @@ void CLS_ManageOpenPositions(const SSetupContext &ctx)
    CLS_PartialExit_Prune(liveTickets, ArraySize(liveTickets));
 }
 
+//+------------------------------------------------------------------+
+//| Hard circuit breaker for Rule #7's daily loss limit: before this,    |
+//| CLS_IsDailyLossLimitHit() (Risk/CLSAgent_DailyLimits.mqh) only ever     |
+//| blocked new entries, leaving any already-open basket to run               |
+//| unmanaged for the rest of the broker day. Closes every open position       |
+//| this EA owns on this symbol (any direction/setup), at market,               |
+//| immediately. Safe to call every tick - it is just a fresh                     |
+//| PositionsTotal() scan (same magic-range filter as CLS_ScanCurrentBasket()      |
+//| / CLS_ManageOpenPositions() above) and is a no-op once nothing of this          |
+//| EA's remains open. If a close attempt fails (e.g. transient broker               |
+//| rejection), the position stays open and the next tick's scan retries it            |
+//| - no extra state needed for that.                                                    |
+//+------------------------------------------------------------------+
+void CLS_FlattenAllPositions(const string symbol, const string reason)
+{
+   const long magicBase = (long)InpMagicNumber;
+
+   ulong tickets[];
+   ArrayResize(tickets, 0);
+
+   const int total = PositionsTotal();
+   for(int i = 0; i < total; i++)
+   {
+      const ulong ticket = PositionGetTicket(i);
+      if(ticket == 0 || !PositionSelectByTicket(ticket))
+         continue;
+      if(PositionGetString(POSITION_SYMBOL) != symbol)
+         continue;
+
+      const long magic = (long)PositionGetInteger(POSITION_MAGIC);
+      if(magic < magicBase || magic >= magicBase + CLS_MAX_SETUPS)
+         continue; // not one of this EA's orders
+
+      const int n = ArraySize(tickets);
+      ArrayResize(tickets, n + 1);
+      tickets[n] = ticket;
+   }
+
+   const int n = ArraySize(tickets);
+   if(n == 0)
+      return;
+
+   CLS_Log(CLS_LOG_ERROR, "PositionManager", StringFormat(
+      "%s breached - flattening %d open position(s) on %s.", reason, n, symbol));
+
+   for(int i = 0; i < n; i++)
+   {
+      if(!PositionSelectByTicket(tickets[i]))
+         continue;
+
+      const ENUM_POSITION_TYPE posType = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
+      const double             volume  = PositionGetDouble(POSITION_VOLUME);
+
+      CLS_ClosePositionFull(tickets[i], symbol, posType, volume);
+   }
+}
+
 #endif // CLSAGENT_POSITIONMANAGER_MQH

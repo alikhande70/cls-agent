@@ -220,4 +220,15 @@ bool CLS_ClosePositionPartial(const ulong ticket, const string symbol, const ENU
    return true;
 }
 
+//+------------------------------------------------------------------+
+//| Closes an open position in full at market. Thin wrapper over        |
+//| CLS_ClosePositionPartial() with the position's own volume - kept as   |
+//| a distinct name so a call site reads as "close everything," not       |
+//| "close part of it."                                                     |
+//+------------------------------------------------------------------+
+bool CLS_ClosePositionFull(const ulong ticket, const string symbol, const ENUM_POSITION_TYPE posType, const double volume)
+{
+   return CLS_ClosePositionPartial(ticket, symbol, posType, volume);
+}
+
 #endif // CLSAGENT_ORDERSENDER_MQH

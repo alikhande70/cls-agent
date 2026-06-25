@@ -6,6 +6,9 @@
 //|   integration). The user pastes high-impact windows as             |
 //|   "YYYY.MM.DD HH:MM-HH:MM;YYYY.MM.DD HH:MM-HH:MM;...". Rule #7      |
 //|   treats a match as a hard block, same severity as spread/session. |
+//|   A malformed window fails closed (treated as a block) rather than  |
+//|   open - a typo in the input should never silently disable the      |
+//|   guard for that window.                                            |
 //+------------------------------------------------------------------+
 #ifndef CLSAGENT_NEWSGUARD_MQH
 #define CLSAGENT_NEWSGUARD_MQH
@@ -32,15 +35,15 @@ bool CLS_IsInNewsWindow(const datetime now)
       string dateAndRange[];
       if(StringSplit(entry, ' ', dateAndRange) != 2)
       {
-         CLS_Log(CLS_LOG_WARNING, "NewsGuard", "Malformed window (expected 'YYYY.MM.DD HH:MM-HH:MM'): " + entry);
-         continue;
+         CLS_Log(CLS_LOG_ERROR, "NewsGuard", "Malformed window (expected 'YYYY.MM.DD HH:MM-HH:MM'): " + entry + " - failing closed (blocking entries until fixed).");
+         return true;
       }
 
       string range[];
       if(StringSplit(dateAndRange[1], '-', range) != 2)
       {
-         CLS_Log(CLS_LOG_WARNING, "NewsGuard", "Malformed time range in window: " + entry);
-         continue;
+         CLS_Log(CLS_LOG_ERROR, "NewsGuard", "Malformed time range in window: " + entry + " - failing closed (blocking entries until fixed).");
+         return true;
       }
 
       const datetime windowStart = StringToTime(dateAndRange[0] + " " + range[0]);
