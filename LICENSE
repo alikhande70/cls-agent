@@ -1,21 +1,92 @@
-MIT License
+CLS Agent Source-Available License (CASL) v1.0
+Copyright (c) 2026 alikhande70. All rights reserved.
 
-Copyright (c) 2026 alikhande70
+This repository ("the Project") is made source-available for transparency,
+evaluation, and community feedback. It is NOT released under MIT, GPL,
+Apache-2.0, or any other OSI-approved open-source license. Use of this
+Project is governed exclusively by the terms below.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. DEFINITIONS
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+"Owner" means alikhande70, the copyright holder and sole administrator of
+this repository.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+"Project" means the contents of the `alikhande70/cls-agent`
+repository, including all source code, scripts, documentation, and
+associated files (the CLS Agent MetaTrader 5 / MQL5 Expert Advisor and
+related materials).
+
+"You" means any individual or entity accessing, downloading, or using the
+Project who is not the Owner.
+
+2. PERMITTED USES (no written permission required)
+
+You MAY, free of charge:
+  a. View the source code online.
+  b. Download or clone the repository (including ZIP downloads and
+     `git clone`) for local use.
+  c. Run, compile, and test the Expert Advisor locally inside your own
+     MetaTrader 5 installation, including in the Strategy Tester and on
+     demo or personal live accounts, for your own personal, non-commercial
+     evaluation.
+  d. Review the code for educational purposes.
+  e. Inspect, analyze, or summarize the code using AI tools, IDEs, or
+     Model Context Protocol (MCP)-compatible tooling (including Claude
+     Code), whether running locally or against your own clone.
+  f. Submit Issues, Discussions, and Pull Requests to this repository
+     proposing fixes, improvements, or suggestions.
+
+3. RESTRICTED USES (written permission from the Owner required)
+
+You MAY NOT, without prior written permission from the Owner:
+  a. Sell, license, sublicense, or otherwise commercialize the Project or
+     any derivative of it, in whole or in part.
+  b. Publish, distribute, or redistribute the Project or any modified
+     version of it (e.g., as your own repository, package, product, or
+     paid/free download) to any third party.
+  c. Rebrand the Project, or any modified version of it, as your own work
+     or under a different project name, author, or organization.
+  d. Claim authorship or ownership of the Project or any portion of it.
+  e. Remove, obscure, or alter any copyright, attribution, or license
+     notice contained in the Project.
+  f. Use the Project, or any portion of it, as part of a commercial
+     product, paid service, or for-profit offering.
+  g. Push or merge changes directly into this repository's `main` branch.
+     The only mechanism for proposing changes is a Pull Request, which the
+     Owner may accept, reject, or modify at their sole discretion.
+
+4. CONTRIBUTIONS
+
+Any Issue, Discussion post, or Pull Request you submit to this repository
+is offered to the Owner under these same terms. By submitting a
+contribution, you grant the Owner an unrestricted, perpetual, royalty-free
+license to use, modify, and incorporate that contribution into the
+Project. The Owner is under no obligation to merge, credit, or compensate
+any contribution.
+
+5. OWNER RIGHTS
+
+Nothing in this license restricts the Owner's own rights to use, modify,
+relicense, distribute, sell, or otherwise deal with the Project in any way
+the Owner sees fit, including granting different terms to specific third
+parties in writing.
+
+6. NO WARRANTY
+
+THE PROJECT IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE OWNER BE LIABLE FOR ANY CLAIM, DAMAGES, TRADING LOSSES, OR OTHER
+LIABILITY ARISING FROM THE USE OF THE PROJECT. See DISCLAIMER.md for
+trading-specific risk disclosures.
+
+7. REQUESTING PERMISSION
+
+To request written permission for any use described in Section 3, contact
+the Owner via the repository's GitHub profile (`alikhande70`) or by
+opening a GitHub Discussion on this repository.
+
+8. TERMINATION
+
+Any use of the Project in violation of Section 3 automatically terminates
+the permissions granted in Section 2 for the violating party.
