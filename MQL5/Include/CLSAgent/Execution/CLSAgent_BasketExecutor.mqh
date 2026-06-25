@@ -57,10 +57,14 @@ string CLS_SetupShortCode(const ENUM_CLS_SETUP_TYPE setupType)
 //| false return covers three distinct, already-logged-elsewhere cases: |
 //| Risk Engine rejected it (logged by the Risk stage), Mode/AutoTrade   |
 //| vetoed it (logged below), or the broker rejected/failed the send     |
-//| (logged by OrderSender).                                             |
+//| (logged by OrderSender). outTicket is 0 on any false return, and is  |
+//| only meaningful to the caller for the Journal (Part 8) - this        |
+//| function's own log line already prints it regardless.                |
 //+------------------------------------------------------------------+
-bool CLS_ExecuteBasketOrder(const SSetupContext &ctx, const SSetupSignal &signal, const SRiskDecision &risk)
+bool CLS_ExecuteBasketOrder(const SSetupContext &ctx, const SSetupSignal &signal, const SRiskDecision &risk, ulong &outTicket)
 {
+   outTicket = 0;
+
    if(!risk.isApproved)
       return false;
 
@@ -76,14 +80,13 @@ bool CLS_ExecuteBasketOrder(const SSetupContext &ctx, const SSetupSignal &signal
    const long   magic   = (long)InpMagicNumber + CLS_MagicOffsetForSetup(signal.setupType);
    const string comment = StringFormat("CLS-%s-%s", CLS_SetupShortCode(signal.setupType), CLS_DirectionToString(signal.direction));
 
-   ulong ticket = 0;
    const bool sent = CLS_SendMarketOrder(ctx.symbol, signal.direction, risk.lotSize,
-                                          signal.stopLoss, signal.takeProfit, magic, comment, ticket);
+                                          signal.stopLoss, signal.takeProfit, magic, comment, outTicket);
 
    CLS_Log(sent ? CLS_LOG_INFO : CLS_LOG_ERROR, "Execution", StringFormat(
       "%s dir=%s lots=%.2f magic=%d ticket=%I64u sent=%s",
       EnumToString(signal.setupType), CLS_DirectionToString(signal.direction), risk.lotSize,
-      magic, ticket, (sent ? "true" : "false")));
+      magic, outTicket, (sent ? "true" : "false")));
 
    return sent;
 }

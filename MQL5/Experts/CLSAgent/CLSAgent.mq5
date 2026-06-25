@@ -11,9 +11,9 @@
 //|   stage to the Market modules. Part 3 wired the Setup Detector     |
 //|   stage to Strategy/SetupDetector + Setup A/B/C/D. Part 4 wired    |
 //|   the Score/Decision Engine stage. Part 5 wired the Risk Engine    |
-//|   stage. Part 6 wired the Basket Execution stage. Part 7 wires      |
-//|   the Position Manager stage. Stages from Journal/Memory onward      |
-//|   remain named stubs until Parts 8-9.                                 |
+//|   stage. Part 6 wired the Basket Execution stage. Part 7 wired       |
+//|   the Position Manager stage. Part 8 wires the Journal/Memory        |
+//|   stage. Stage from Report onward remains a named stub until Part 9.  |
 //+------------------------------------------------------------------+
 #property copyright "CLS Agent"
 #property link      ""
@@ -42,17 +42,25 @@
 #include <CLSAgent/Execution/CLSAgent_Trailing.mqh>
 #include <CLSAgent/Execution/CLSAgent_PartialExit.mqh>
 #include <CLSAgent/Execution/CLSAgent_PositionManager.mqh>
+#include <CLSAgent/Memory/CLSAgent_CsvWriter.mqh>
+#include <CLSAgent/Memory/CLSAgent_Journal.mqh>
+#include <CLSAgent/Memory/CLSAgent_PerformanceStats.mqh>
+#include <CLSAgent/Memory/CLSAgent_TradeLog.mqh>
+#include <CLSAgent/Memory/CLSAgent_BasketLog.mqh>
 
 //+------------------------------------------------------------------+
-//| Pipeline stage stubs still pending (Parts 8-9). Stage 1 (Context   |
-//| Engine) is BuildSetupContext() below; Stage 2 (Setup Detector) is   |
-//| CLS_DetectSetups(); Stage 3 (Score/Decision Engine) is              |
-//| CLS_DecideSignal(); Stage 4 (Risk Engine) is CLS_EvaluateRisk();    |
-//| Stage 5 (Basket Execution) is CLS_ExecuteBasketOrder(); Stage 6      |
-//| (Position Manager) is CLS_ManageOpenPositions() - all called          |
-//| directly from OnTick().                                                |
+//| Pipeline stage stub still pending (Part 9). Stage 1 (Context        |
+//| Engine) is BuildSetupContext() below; Stage 2 (Setup Detector) is    |
+//| CLS_DetectSetups(); Stage 3 (Score/Decision Engine) is               |
+//| CLS_DecideSignal(); Stage 4 (Risk Engine) is CLS_EvaluateRisk();     |
+//| Stage 5 (Basket Execution) is CLS_ExecuteBasketOrder(); Stage 6       |
+//| (Position Manager) is CLS_ManageOpenPositions(); Stage 7 (Journal/     |
+//| Memory) is CLS_Journal_LogSignal() + CLS_BasketLog_Update() - all       |
+//| called directly from OnTick(). CLS_TradeLog_OnDealAdded() runs off       |
+//| the separate OnTradeTransaction() event instead (see below) since a      |
+//| position can close via the broker filling its SL/TP directly, never       |
+//| passing through OnTick() at all.                                           |
 //+------------------------------------------------------------------+
-void Stage_JournalMemory_STUB()                            { /* Part 8: Memory/Journal, TradeLog, BasketLog, PerformanceStats */ }
 void Stage_ReportLLMReview_STUB()                           { /* Part 9: Reports/DebugPanel, BacktestReport, ExportCSV */ }
 
 //+------------------------------------------------------------------+
@@ -230,8 +238,8 @@ void OnTick()
       ctx.spreadPoints, (ctx.spreadAllowed ? "OK" : "BLOCKED"),
       (ctx.isContextValid ? "true" : "false")));
 
-   // Pipeline shape from here on - Parts 7-9 replace the remaining stub calls
-   // with real module calls, in order, without changing this call sequence.
+   // Pipeline shape from here on - Part 9 replaces the remaining stub call
+   // with a real module call, without changing this call sequence.
    SSetupSignal  signal;
    SScoreResult  score;
    SRiskDecision risk;
@@ -256,15 +264,37 @@ void OnTick()
       // Logs its own outcome (Mode/AutoTrade veto, or the broker's fill/reject) -
       // see CLSAgent_BasketExecutor.mqh. Safe to call unconditionally: it is a
       // silent no-op whenever risk.isApproved is false.
-      CLS_ExecuteBasketOrder(ctx, signal, risk);
+      ulong executedTicket = 0;
+      const bool orderSent = CLS_ExecuteBasketOrder(ctx, signal, risk, executedTicket);
+
+      // Rule #9: every signal logged here regardless of accept/reject/sent -
+      // the only complete record of what the EA considered this bar.
+      CLS_Journal_LogSignal(ctx, signal, score, risk, orderSent, executedTicket);
    }
 
    // Runs every closed bar regardless of whether a new signal fired this bar -
    // existing open positions still need breakeven/partial-exit/trailing checks.
    CLS_ManageOpenPositions(ctx);
 
-   Stage_JournalMemory_STUB();
+   // Reuses the same basket scan Risk Engine/Position Manager already trust;
+   // only writes a row when a direction's composition actually changed.
+   CLS_BasketLog_Update(ctx.symbol);
+
    Stage_ReportLLMReview_STUB();
+}
+
+//+------------------------------------------------------------------+
+//| Fires for every change to the account's order/position/history       |
+//| state. Only TRADE_TRANSACTION_DEAL_ADD is relevant here - a deal       |
+//| just landed in history, which is the only reliable way to detect a      |
+//| position closing, since the broker can fill an SL/TP directly without    |
+//| this EA's own code ever requesting it (so it can never be inferred        |
+//| from OnTick() alone).                                                      |
+//+------------------------------------------------------------------+
+void OnTradeTransaction(const MqlTradeTransaction &trans, const MqlTradeRequest &request, const MqlTradeResult &result)
+{
+   if(trans.type == TRADE_TRANSACTION_DEAL_ADD)
+      CLS_TradeLog_OnDealAdded(trans.deal);
 }
 
 //+------------------------------------------------------------------+

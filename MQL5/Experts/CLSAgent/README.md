@@ -8,7 +8,7 @@ it never sends an order — that boundary is enforced in code, not just by conve
 
 ## Build status
 
-**Parts 1-7 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine, Basket Execution, Position Management.**
+**Parts 1-8 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine, Basket Execution, Position Management, Memory/Journal.**
 
 Implemented so far:
 - **Part 1 — Core.** Folder skeleton for every module, fixed safety constants
@@ -99,9 +99,33 @@ Implemented so far:
   original stop distance. Wired into `OnTick()` directly (no stub remains for
   this stage) — runs every closed bar regardless of whether a new signal
   fired that bar, since existing open positions still need managing.
+- **Part 8 — Memory / Journal &amp; Adaptive State.** `CsvWriter` is the one
+  shared append-only-file helper (`CLS_Csv_AppendLine()`) every Memory module
+  reuses — open, seek to end, write the header only on first creation, append
+  the data row, close — gated entirely by `InpLogToFile` (console logging via
+  `CLS_Log()` is unaffected either way). `Journal` (`CLS_Journal_LogSignal()`)
+  satisfies Rule #9: every signal that reaches the Score Engine, accepted or
+  rejected by any later stage, gets exactly one `journal.csv` row, called
+  directly from `OnTick()` regardless of outcome. `TradeLog`
+  (`CLS_TradeLog_OnDealAdded()`) is driven from `OnTradeTransaction()`'s
+  `TRADE_TRANSACTION_DEAL_ADD` event instead of the bar cadence — a position
+  can close via the broker filling its SL/TP directly, which this EA's own
+  code never explicitly requests, so deal history is the only reliable
+  detection point; it logs only the closing side (`DEAL_ENTRY_OUT`/
+  `DEAL_ENTRY_OUT_BY`) to `trades.csv` and feeds `PerformanceStats`.
+  `PerformanceStats` keeps running trades/wins/losses/grossProfit/grossLoss
+  totals, both overall and per-setup-type, fed exclusively by that hook since
+  a deal's own profit/swap/commission is the only authoritative source for
+  realized P/L. `BasketLog` (`CLS_BasketLog_Update()`) reuses
+  `BasketRisk`'s own `CLS_ScanCurrentBasket()` — the same source of truth
+  the Risk Engine and Position Manager already trust — rather than keeping a
+  separate tally, and writes a `baskets.csv` row only when a direction's
+  order count actually changed since the last bar. Wired into `OnTick()`
+  directly (no stub remains for this stage); `CLS_TradeLog_OnDealAdded()`
+  alone runs from the new `OnTradeTransaction()` handler instead.
 
 Not implemented yet (later parts, do not edit ahead of schedule):
-Journal/adaptive state and Reports/backtest export.
+Reports/backtest export.
 
 ## Folder map
 
@@ -137,12 +161,18 @@ MQL5/
     │   ├── CLSAgent_LotCalculator.mqh
     │   ├── CLSAgent_DailyLimits.mqh
     │   └── CLSAgent_NewsGuard.mqh
-    └── Execution/                  <- Parts 6-7
-        ├── CLSAgent_BasketExecutor.mqh
-        ├── CLSAgent_OrderSender.mqh
-        ├── CLSAgent_PositionManager.mqh
-        ├── CLSAgent_PartialExit.mqh
-        └── CLSAgent_Trailing.mqh
+    ├── Execution/                  <- Parts 6-7
+    │   ├── CLSAgent_BasketExecutor.mqh
+    │   ├── CLSAgent_OrderSender.mqh
+    │   ├── CLSAgent_PositionManager.mqh
+    │   ├── CLSAgent_PartialExit.mqh
+    │   └── CLSAgent_Trailing.mqh
+    └── Memory/                     <- Part 8
+        ├── CLSAgent_CsvWriter.mqh
+        ├── CLSAgent_Journal.mqh
+        ├── CLSAgent_TradeLog.mqh
+        ├── CLSAgent_PerformanceStats.mqh
+        └── CLSAgent_BasketLog.mqh
 ```
 
 ## Installing into MetaTrader 5
