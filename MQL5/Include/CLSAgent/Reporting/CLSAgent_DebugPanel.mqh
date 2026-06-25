@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                        CLSAgent_DebugPanel.mqh   |
-//|   CLS Agent v2.4+ - Reports / Debug Panel - Part 9               |
+//|   CLS Agent v2.4+ - Reporting / Debug Panel - Part 9             |
 //|                                                                    |
 //|   Cheap on-chart visibility into what the deterministic pipeline    |
 //|   is doing right now - this never feeds back into any decision,     |

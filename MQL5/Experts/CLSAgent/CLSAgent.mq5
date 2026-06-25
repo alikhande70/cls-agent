@@ -51,9 +51,9 @@
 #include <CLSAgent/Memory/CLSAgent_PerformanceStats.mqh>
 #include <CLSAgent/Memory/CLSAgent_TradeLog.mqh>
 #include <CLSAgent/Memory/CLSAgent_BasketLog.mqh>
-#include <CLSAgent/Reports/CLSAgent_DebugPanel.mqh>
-#include <CLSAgent/Reports/CLSAgent_ExportCSV.mqh>
-#include <CLSAgent/Reports/CLSAgent_BacktestReport.mqh>
+#include <CLSAgent/Reporting/CLSAgent_DebugPanel.mqh>
+#include <CLSAgent/Reporting/CLSAgent_ExportCSV.mqh>
+#include <CLSAgent/Reporting/CLSAgent_BacktestReport.mqh>
 
 //+------------------------------------------------------------------+
 //| Every pipeline stage now maps to a real module call. Stage 1        |

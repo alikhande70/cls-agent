@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                         CLSAgent_ExportCSV.mqh   |
-//|   CLS Agent v2.4+ - Reports / Performance Export - Part 9        |
+//|   CLS Agent v2.4+ - Reporting / Performance Export - Part 9      |
 //|                                                                    |
 //|   A point-in-time snapshot, not an append-only log like Journal/    |
 //|   TradeLog/BasketLog (Part 8) - this file is fully overwritten        |
@@ -41,7 +41,7 @@ bool CLS_Report_ExportPerformanceCSV()
    const int    handle = FileOpen(path, FILE_WRITE | FILE_TXT | FILE_ANSI);
    if(handle == INVALID_HANDLE)
    {
-      CLS_Log(CLS_LOG_ERROR, "Reports", StringFormat("Failed to open %s, error=%d.", path, GetLastError()));
+      CLS_Log(CLS_LOG_ERROR, "Reporting", StringFormat("Failed to open %s, error=%d.", path, GetLastError()));
       return false;
    }
 
@@ -54,7 +54,7 @@ bool CLS_Report_ExportPerformanceCSV()
 
    FileClose(handle);
 
-   CLS_Log(CLS_LOG_INFO, "Reports", StringFormat("Performance snapshot exported to %s.", path));
+   CLS_Log(CLS_LOG_INFO, "Reporting", StringFormat("Performance snapshot exported to %s.", path));
    return true;
 }
 

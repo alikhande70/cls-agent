@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                      CLSAgent_BacktestReport.mqh |
-//|   CLS Agent v2.4+ - Reports / Backtest Report - Part 9           |
+//|   CLS Agent v2.4+ - Reporting / Backtest Report - Part 9         |
 //|                                                                    |
 //|   OnTester() only fires inside the Strategy Tester, once a full      |
 //|   backtest/optimization pass finishes - the one moment a run's        |
@@ -64,11 +64,11 @@ double CLS_BacktestReport_Generate()
             CLS_PerformanceStats_ProfitFactor(g_PerfStats[(int)CLS_SETUP_D_BMS_CONTINUATION])));
 
          FileClose(handle);
-         CLS_Log(CLS_LOG_INFO, "Reports", StringFormat("Backtest summary written to %s.", path));
+         CLS_Log(CLS_LOG_INFO, "Reporting", StringFormat("Backtest summary written to %s.", path));
       }
       else
       {
-         CLS_Log(CLS_LOG_ERROR, "Reports", StringFormat("Failed to open %s, error=%d.", path, GetLastError()));
+         CLS_Log(CLS_LOG_ERROR, "Reporting", StringFormat("Failed to open %s, error=%d.", path, GetLastError()));
       }
    }
 

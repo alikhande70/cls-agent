@@ -8,7 +8,7 @@ it never sends an order — that boundary is enforced in code, not just by conve
 
 ## Build status
 
-**Parts 1-10 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine, Basket Execution, Position Management, Memory/Journal, Reports/Backtest, Final Integration. Build complete.**
+**Parts 1-10 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine, Basket Execution, Position Management, Memory/Journal, Reporting/Backtest, Final Integration. Build complete.**
 
 Implemented so far:
 - **Part 1 — Core.** Folder skeleton for every module, fixed safety constants
@@ -125,7 +125,7 @@ Implemented so far:
   order count actually changed since the last bar. Wired into `OnTick()`
   directly (no stub remains for this stage); `CLS_TradeLog_OnDealAdded()`
   alone runs from the new `OnTradeTransaction()` handler instead.
-- **Part 9 — Reports / Debug Panel &amp; Backtest.** `DebugPanel`
+- **Part 9 — Reporting / Debug Panel &amp; Backtest.** `DebugPanel`
   (`CLS_DebugPanel_Update()` / `CLS_DebugPanel_Refresh()`) renders an
   on-chart `Comment()` block — mode/permission flags, the current bar's
   session/ATR/spread context, equity and daily P/L, both directions'
@@ -219,7 +219,7 @@ MQL5/
     │   ├── CLSAgent_TradeLog.mqh
     │   ├── CLSAgent_PerformanceStats.mqh
     │   └── CLSAgent_BasketLog.mqh
-    └── Reports/                    <- Part 9
+    └── Reporting/                  <- Part 9
         ├── CLSAgent_DebugPanel.mqh
         ├── CLSAgent_ExportCSV.mqh
         └── CLSAgent_BacktestReport.mqh

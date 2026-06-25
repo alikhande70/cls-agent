@@ -28,7 +28,7 @@ string CLS_LogLevelToString(const ENUM_CLS_LOG_LEVEL level)
 
 //+------------------------------------------------------------------+
 //| Single funnel for all EA console logging so every later module    |
-//| (Journal in Part 8, Reports in Part 9) can format consistently     |
+//| (Journal in Part 8, Reporting in Part 9) can format consistently   |
 //| and log-level filtering stays centralized in one place.            |
 //+------------------------------------------------------------------+
 void CLS_Log(const ENUM_CLS_LOG_LEVEL level, const string tag, const string message)
