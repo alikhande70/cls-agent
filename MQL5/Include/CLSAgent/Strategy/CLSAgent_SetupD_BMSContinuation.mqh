@@ -65,13 +65,16 @@ bool CLS_DetectSetupD_BMSContinuation(const SSetupContext &ctx, SSetupSignal &si
          else if(close1 > open1)
          {
             signal.setupType   = CLS_SETUP_D_BMS_CONTINUATION;
+            signal.setupClass  = CLS_CLASS_CONTINUATION;
             signal.direction   = CLS_DIR_BUY;
             signal.barTime     = ctx.barTime;
             signal.entryPrice  = close1;
             CLS_BuildStopsFromATR(CLS_DIR_BUY, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                                    signal.stopLoss, signal.takeProfit);
-            signal.stopLoss    = MathMin(signal.stopLoss, g_BMSState.breakLevel - ctx.atrValue * 0.1);
+            signal.stopLoss          = MathMin(signal.stopLoss, g_BMSState.breakLevel - ctx.atrValue * 0.1);
+            signal.invalidationLevel = g_BMSState.breakLevel; // the broken swing itself, tighter than the buffered stop
             signal.rawStrength = g_BMSState.breakBodyStrength;
+            signal.confidence  = signal.rawStrength * 100.0;
             signal.isValid     = true;
             g_BMSState.armed = false; // one shot per break
             return true;
@@ -86,13 +89,16 @@ bool CLS_DetectSetupD_BMSContinuation(const SSetupContext &ctx, SSetupSignal &si
          else if(close1 < open1)
          {
             signal.setupType   = CLS_SETUP_D_BMS_CONTINUATION;
+            signal.setupClass  = CLS_CLASS_CONTINUATION;
             signal.direction   = CLS_DIR_SELL;
             signal.barTime     = ctx.barTime;
             signal.entryPrice  = close1;
             CLS_BuildStopsFromATR(CLS_DIR_SELL, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                                    signal.stopLoss, signal.takeProfit);
-            signal.stopLoss    = MathMax(signal.stopLoss, g_BMSState.breakLevel + ctx.atrValue * 0.1);
+            signal.stopLoss          = MathMax(signal.stopLoss, g_BMSState.breakLevel + ctx.atrValue * 0.1);
+            signal.invalidationLevel = g_BMSState.breakLevel;
             signal.rawStrength = g_BMSState.breakBodyStrength;
+            signal.confidence  = signal.rawStrength * 100.0;
             signal.isValid     = true;
             g_BMSState.armed = false;
             return true;

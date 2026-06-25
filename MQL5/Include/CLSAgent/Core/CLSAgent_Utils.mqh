@@ -54,6 +54,7 @@ string CLS_RejectReasonToString(const ENUM_CLS_REJECT_REASON reason)
       case CLS_REJECT_NEWS:            return "NEWS_GUARD";
       case CLS_REJECT_PERMISSION:      return "PERMISSION_DENIED";
       case CLS_REJECT_UNCONFIRMED_BAR: return "BAR_NOT_CLOSED";
+      case CLS_REJECT_LOSS_STREAK:     return "LOSS_STREAK_PROTECTION";
       case CLS_REJECT_OTHER:           return "OTHER";
    }
    return "UNKNOWN";

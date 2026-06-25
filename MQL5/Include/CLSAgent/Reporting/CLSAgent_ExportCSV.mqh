@@ -51,6 +51,7 @@ bool CLS_Report_ExportPerformanceCSV()
    FileWrite(handle, CLS_ExportCSV_StatsRow(EnumToString(CLS_SETUP_B_DAILY_HUNT),       g_PerfStats[(int)CLS_SETUP_B_DAILY_HUNT]));
    FileWrite(handle, CLS_ExportCSV_StatsRow(EnumToString(CLS_SETUP_C_FVG_FILL),         g_PerfStats[(int)CLS_SETUP_C_FVG_FILL]));
    FileWrite(handle, CLS_ExportCSV_StatsRow(EnumToString(CLS_SETUP_D_BMS_CONTINUATION), g_PerfStats[(int)CLS_SETUP_D_BMS_CONTINUATION]));
+   FileWrite(handle, CLS_ExportCSV_StatsRow(EnumToString(CLS_SETUP_E_ORDER_BLOCK_REJECTION), g_PerfStats[(int)CLS_SETUP_E_ORDER_BLOCK_REJECTION]));
 
    FileClose(handle);
 

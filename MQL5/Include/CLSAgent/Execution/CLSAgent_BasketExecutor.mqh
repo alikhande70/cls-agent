@@ -30,10 +30,11 @@ int CLS_MagicOffsetForSetup(const ENUM_CLS_SETUP_TYPE setupType)
 {
    switch(setupType)
    {
-      case CLS_SETUP_A_ASIAN_SWEEP:      return CLS_MAGIC_OFFSET_SETUP_A;
-      case CLS_SETUP_B_DAILY_HUNT:       return CLS_MAGIC_OFFSET_SETUP_B;
-      case CLS_SETUP_C_FVG_FILL:         return CLS_MAGIC_OFFSET_SETUP_C;
-      case CLS_SETUP_D_BMS_CONTINUATION: return CLS_MAGIC_OFFSET_SETUP_D;
+      case CLS_SETUP_A_ASIAN_SWEEP:           return CLS_MAGIC_OFFSET_SETUP_A;
+      case CLS_SETUP_B_DAILY_HUNT:            return CLS_MAGIC_OFFSET_SETUP_B;
+      case CLS_SETUP_C_FVG_FILL:              return CLS_MAGIC_OFFSET_SETUP_C;
+      case CLS_SETUP_D_BMS_CONTINUATION:       return CLS_MAGIC_OFFSET_SETUP_D;
+      case CLS_SETUP_E_ORDER_BLOCK_REJECTION:  return CLS_MAGIC_OFFSET_SETUP_E;
    }
    return 0;
 }
@@ -44,10 +45,11 @@ string CLS_SetupShortCode(const ENUM_CLS_SETUP_TYPE setupType)
 {
    switch(setupType)
    {
-      case CLS_SETUP_A_ASIAN_SWEEP:      return "A";
-      case CLS_SETUP_B_DAILY_HUNT:       return "B";
-      case CLS_SETUP_C_FVG_FILL:         return "C";
-      case CLS_SETUP_D_BMS_CONTINUATION: return "D";
+      case CLS_SETUP_A_ASIAN_SWEEP:           return "A";
+      case CLS_SETUP_B_DAILY_HUNT:            return "B";
+      case CLS_SETUP_C_FVG_FILL:              return "C";
+      case CLS_SETUP_D_BMS_CONTINUATION:       return "D";
+      case CLS_SETUP_E_ORDER_BLOCK_REJECTION:  return "E";
    }
    return "?";
 }
@@ -80,13 +82,15 @@ bool CLS_ExecuteBasketOrder(const SSetupContext &ctx, const SSetupSignal &signal
    const long   magic   = (long)InpMagicNumber + CLS_MagicOffsetForSetup(signal.setupType);
    const string comment = StringFormat("CLS-%s-%s", CLS_SetupShortCode(signal.setupType), CLS_DirectionToString(signal.direction));
 
+   double filledVolume = 0.0, slippagePoints = 0.0;
    const bool sent = CLS_SendMarketOrder(ctx.symbol, signal.direction, risk.lotSize,
-                                          signal.stopLoss, signal.takeProfit, magic, comment, outTicket);
+                                          signal.stopLoss, signal.takeProfit, magic, comment,
+                                          outTicket, filledVolume, slippagePoints);
 
    CLS_Log(sent ? CLS_LOG_INFO : CLS_LOG_ERROR, "Execution", StringFormat(
-      "%s dir=%s lots=%.2f magic=%d ticket=%I64u sent=%s",
+      "%s dir=%s lots=%.2f filled=%.2f magic=%d ticket=%I64u sent=%s slippagePts=%.1f",
       EnumToString(signal.setupType), CLS_DirectionToString(signal.direction), risk.lotSize,
-      magic, outTicket, (sent ? "true" : "false")));
+      filledVolume, magic, outTicket, (sent ? "true" : "false"), slippagePoints));
 
    return sent;
 }

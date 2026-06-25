@@ -75,7 +75,8 @@ void CLS_DebugPanel_Render()
    text += CLS_DebugPanel_StatsLine("A", g_PerfStats[(int)CLS_SETUP_A_ASIAN_SWEEP]) + "\n";
    text += CLS_DebugPanel_StatsLine("B", g_PerfStats[(int)CLS_SETUP_B_DAILY_HUNT]) + "\n";
    text += CLS_DebugPanel_StatsLine("C", g_PerfStats[(int)CLS_SETUP_C_FVG_FILL]) + "\n";
-   text += CLS_DebugPanel_StatsLine("D", g_PerfStats[(int)CLS_SETUP_D_BMS_CONTINUATION]);
+   text += CLS_DebugPanel_StatsLine("D", g_PerfStats[(int)CLS_SETUP_D_BMS_CONTINUATION]) + "\n";
+   text += CLS_DebugPanel_StatsLine("E", g_PerfStats[(int)CLS_SETUP_E_ORDER_BLOCK_REJECTION]);
 
    Comment(text);
 }

@@ -7,7 +7,7 @@
 #define CLSAGENT_CONSTANTS_MQH
 
 #define CLS_AGENT_NAME       "CLS Agent"
-#define CLS_AGENT_VERSION    "2.4.0"
+#define CLS_AGENT_VERSION    "2.5.0"
 #define CLS_AGENT_FULL_NAME  "Decision-Safe Contextual Liquidity Scalping Agent"
 
 //--- Non-negotiable safety rules -----------------------------------------
@@ -19,7 +19,7 @@
 
 //--- Sizing / structural limits ------------------------------------------
 #define CLS_MAX_ORDERS_PER_BASKET_HARDCAP 5
-#define CLS_MAX_SETUPS                     4
+#define CLS_MAX_SETUPS                     5
 #define CLS_MAX_SYMBOLS                    4
 
 //--- Magic number layout ---------------------------------------------------
@@ -30,6 +30,7 @@
 #define CLS_MAGIC_OFFSET_SETUP_B       1
 #define CLS_MAGIC_OFFSET_SETUP_C       2
 #define CLS_MAGIC_OFFSET_SETUP_D       3
+#define CLS_MAGIC_OFFSET_SETUP_E       4
 
 //--- Files\CLSAgent\ subfolders (relative to the terminal's MQL5\Files\) --
 #define CLS_FILES_LOGS_DIR     "CLSAgent\\logs\\"

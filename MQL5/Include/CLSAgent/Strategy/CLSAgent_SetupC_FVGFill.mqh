@@ -52,13 +52,16 @@ bool CLS_DetectSetupC_FVGFill(const SSetupContext &ctx, SSetupSignal &signal)
       if(tradedIntoGap && rejectedUp)
       {
          signal.setupType   = CLS_SETUP_C_FVG_FILL;
+         signal.setupClass  = CLS_CLASS_CONTINUATION; // return-to-imbalance continuation, not a reversal
          signal.direction   = CLS_DIR_BUY;
          signal.barTime     = ctx.barTime;
          signal.entryPrice  = close1;
          CLS_BuildStopsFromATR(CLS_DIR_BUY, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                                 signal.stopLoss, signal.takeProfit);
-         signal.stopLoss    = MathMin(signal.stopLoss, bullLow - ctx.atrValue * 0.1);
+         signal.stopLoss          = MathMin(signal.stopLoss, bullLow - ctx.atrValue * 0.1);
+         signal.invalidationLevel = bullLow; // closing back below the gap's own floor breaks the fill premise
          signal.rawStrength = MathMin(1.0, (bullHigh - bullLow) / MathMax(ctx.atrValue, CLS_PRICE_EPSILON));
+         signal.confidence  = signal.rawStrength * 100.0;
          signal.isValid     = true;
          return true;
       }
@@ -71,13 +74,16 @@ bool CLS_DetectSetupC_FVGFill(const SSetupContext &ctx, SSetupSignal &signal)
       if(tradedIntoGap && rejectedDown)
       {
          signal.setupType   = CLS_SETUP_C_FVG_FILL;
+         signal.setupClass  = CLS_CLASS_CONTINUATION;
          signal.direction   = CLS_DIR_SELL;
          signal.barTime     = ctx.barTime;
          signal.entryPrice  = close1;
          CLS_BuildStopsFromATR(CLS_DIR_SELL, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                                 signal.stopLoss, signal.takeProfit);
-         signal.stopLoss    = MathMax(signal.stopLoss, bearHigh + ctx.atrValue * 0.1);
+         signal.stopLoss          = MathMax(signal.stopLoss, bearHigh + ctx.atrValue * 0.1);
+         signal.invalidationLevel = bearHigh;
          signal.rawStrength = MathMin(1.0, (bearHigh - bearLow) / MathMax(ctx.atrValue, CLS_PRICE_EPSILON));
+         signal.confidence  = signal.rawStrength * 100.0;
          signal.isValid     = true;
          return true;
       }

@@ -34,14 +34,25 @@ enum ENUM_CLS_DIRECTION
    CLS_DIR_SELL = -1
 };
 
-// Setup identifiers, implemented in Part 3.
+// Setup identifiers, implemented in Part 3 (A-D) and Phase 2 (E).
 enum ENUM_CLS_SETUP_TYPE
 {
-   CLS_SETUP_NONE               = 0,
-   CLS_SETUP_A_ASIAN_SWEEP      = 1,
-   CLS_SETUP_B_DAILY_HUNT       = 2,
-   CLS_SETUP_C_FVG_FILL         = 3,
-   CLS_SETUP_D_BMS_CONTINUATION = 4
+   CLS_SETUP_NONE                     = 0,
+   CLS_SETUP_A_ASIAN_SWEEP            = 1,
+   CLS_SETUP_B_DAILY_HUNT             = 2,
+   CLS_SETUP_C_FVG_FILL               = 3,
+   CLS_SETUP_D_BMS_CONTINUATION       = 4,
+   CLS_SETUP_E_ORDER_BLOCK_REJECTION  = 5
+};
+
+// Whether a fired setup is riding the existing trend (continuation) or
+// fading it at a liquidity extreme (reversal) - Phase 2 classification
+// used by the Score Engine's trend-alignment factor.
+enum ENUM_CLS_SETUP_CLASS
+{
+   CLS_CLASS_NONE         = 0,
+   CLS_CLASS_CONTINUATION = 1,
+   CLS_CLASS_REVERSAL     = 2
 };
 
 // Trading session, implemented in Part 2.
@@ -86,6 +97,7 @@ enum ENUM_CLS_REJECT_REASON
    CLS_REJECT_NEWS            = 8,
    CLS_REJECT_PERMISSION      = 9,
    CLS_REJECT_UNCONFIRMED_BAR = 10,
+   CLS_REJECT_LOSS_STREAK     = 11,
    CLS_REJECT_OTHER           = 99
 };
 
@@ -138,28 +150,34 @@ struct SSetupContext
    }
 };
 
-// Output of the Setup Detector - filled in Part 3.
+// Output of the Setup Detector - filled in Part 3, extended in Phase 2.
 struct SSetupSignal
 {
-   ENUM_CLS_SETUP_TYPE setupType;
-   ENUM_CLS_DIRECTION  direction;
-   datetime            barTime;
-   double              entryPrice;
-   double              stopLoss;
-   double              takeProfit;
-   double              rawStrength; // 0..1, setup-specific trigger quality - filled by the detector that fired (Part 4 Score Engine input)
-   bool                isValid;
+   ENUM_CLS_SETUP_TYPE  setupType;
+   ENUM_CLS_SETUP_CLASS setupClass;       // continuation vs reversal - Phase 2
+   ENUM_CLS_DIRECTION   direction;
+   datetime             barTime;
+   double               entryPrice;
+   double               stopLoss;
+   double               takeProfit;
+   double               rawStrength;      // 0..1, setup-specific trigger quality - filled by the detector that fired (Part 4 Score Engine input)
+   double               confidence;       // 0..100, detector's own confidence in this signal before scoring/gating - Phase 2
+   double               invalidationLevel;// price beyond which the setup's premise is structurally broken (usually == stopLoss, kept distinct for setups that invalidate before SL) - Phase 2
+   bool                 isValid;
 
    SSetupSignal()
    {
-      setupType   = CLS_SETUP_NONE;
-      direction   = CLS_DIR_NONE;
-      barTime     = 0;
-      entryPrice  = 0.0;
-      stopLoss    = 0.0;
-      takeProfit  = 0.0;
-      rawStrength = 0.0;
-      isValid     = false;
+      setupType         = CLS_SETUP_NONE;
+      setupClass        = CLS_CLASS_NONE;
+      direction         = CLS_DIR_NONE;
+      barTime           = 0;
+      entryPrice        = 0.0;
+      stopLoss          = 0.0;
+      takeProfit        = 0.0;
+      rawStrength       = 0.0;
+      confidence        = 0.0;
+      invalidationLevel = 0.0;
+      isValid           = false;
    }
 };
 

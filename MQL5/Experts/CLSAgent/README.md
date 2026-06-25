@@ -10,6 +10,30 @@ it never sends an order — that boundary is enforced in code, not just by conve
 
 **Parts 1-10 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine, Basket Execution, Position Management, Memory/Journal, Reporting/Backtest, Final Integration. Build complete.**
 
+**Phase 2 (v2.5) done — Real Trading Intelligence.** Setup E (Order Block
+Rejection) joined Setups A-D; every setup now classifies its own
+continuation-vs-reversal premise (`ENUM_CLS_SETUP_CLASS`) and reports a
+0..100 `confidence` plus a structural `invalidationLevel`, both part of the
+`SSetupSignal` output contract. `ScoreEngine` is now a genuine weighted
+multi-factor model — six independent 0..1 quality reads (trend alignment,
+ATR regime, session, spread, liquidity context, momentum confirmation),
+combined via configurable sum-normalized weights, then multiplied by the
+firing setup's own `rawStrength` trigger-quality gate. `DecisionEngine`
+gained an explicit veto layer (spread / session / news / ATR-regime can
+reject a signal outright even after it clears the score threshold) on top
+of the existing per-asset-class score gate. `RiskEngine` gained
+consecutive-loss-streak protection: size is cut by
+`InpLossStreakReduceFactor` once `InpLossStreakReduceAt` losses in a row
+are reached, and trading pauses outright (`CLS_REJECT_LOSS_STREAK`) at
+`InpLossStreakPauseAt`, tracked by a new `currentLossStreak`/
+`maxLossStreak` pair on `g_PerfStats[0]` that only a win can reset.
+`OrderSender` now reads `MqlTradeResult.volume`/`.price` straight off the
+broker on every fill to detect partial fills (`outFilledVolume < volume`,
+logged as a `WARNING`) and compute realized slippage in points versus the
+price quoted right before the send (`outSlippagePoints`, signed so
+positive always means worse-than-quoted) — never a synthetic/RNG
+estimate, surfaced through to `BasketExecutor`'s own log line.
+
 Implemented so far:
 - **Part 1 — Core.** Folder skeleton for every module, fixed safety constants
   (`CLS_NO_ADD_TO_LOSING_BASKET`, `CLS_LLM_CAN_SEND_ORDERS`), shared enums/structs
@@ -166,12 +190,16 @@ Implemented so far:
   like `"(0, 5]%."`) and confirmed no stray `STUB`/`TODO`/`FIXME` markers
   remain anywhere in the tree.
 
-Not implemented yet: nothing — all 10 parts are complete.
+Not implemented yet: nothing — all 10 base parts plus Phase 2 are complete.
 `MQL5/Include/CLSAgent/Tests/` intentionally ships empty (only `.gitkeep`)
 in v1: every module is verified by manual code review plus the balance
 checks above, since no MQL5 compiler/test runner was available while
 building this; wiring up real `.mq5`-script-based or Strategy-Tester-driven
-tests is left for a future pass, not an oversight.
+tests is left for a future pass, not an oversight. `NewsGuard` (Part 5) is
+still manual-window-only — no economic-calendar API integration. Partial
+fills/slippage (Phase 2) are detected and logged from real broker-reported
+`MqlTradeResult` fields, never simulated; there is deliberately no
+synthetic RNG-based fill/slippage model anywhere in the project.
 
 ## Folder map
 
@@ -199,6 +227,7 @@ MQL5/
     │   ├── CLSAgent_SetupB_DailyHunt.mqh
     │   ├── CLSAgent_SetupC_FVGFill.mqh
     │   ├── CLSAgent_SetupD_BMSContinuation.mqh
+    │   ├── CLSAgent_SetupE_OrderBlockRejection.mqh   <- Phase 2
     │   ├── CLSAgent_ScoreEngine.mqh
     │   └── CLSAgent_DecisionEngine.mqh
     ├── Risk/                       <- Part 5

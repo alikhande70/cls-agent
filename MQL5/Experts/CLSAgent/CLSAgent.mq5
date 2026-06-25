@@ -18,10 +18,19 @@
 //|   Part 10 is the final integration pass: stale input annotations        |
 //|   pointing at not-yet-built parts removed, and PartialExit's ticket       |
 //|   cache given real cross-restart persistence. All 10 parts done.           |
+//|                                                                              |
+//|   Phase 2 (v2.5) deepened the trading intelligence itself: Setup E           |
+//|   (Order Block Rejection) joined A-D, every setup now classifies its          |
+//|   own continuation-vs-reversal premise, the Score Engine became a              |
+//|   real weighted multi-factor model (trend/ATR/session/spread/liquidity/         |
+//|   momentum), the Decision Engine gained an explicit veto layer, the             |
+//|   Risk Engine gained consecutive-loss-streak protection, and the                 |
+//|   Execution layer now surfaces broker-reported partial fills and                  |
+//|   realized slippage instead of assuming every fill is clean.                       |
 //+------------------------------------------------------------------+
 #property copyright "CLS Agent"
 #property link      ""
-#property version   "2.40"
+#property version   "2.50"
 #property strict
 #property description "Decision-Safe Contextual Liquidity Scalping Agent (CLS Agent v2.4+)"
 #property description "Rule-based EA: the LLM never sends orders, it only analyzes/reviews/reports."

@@ -88,13 +88,19 @@ bool CLS_IsRetryableRetcode(const uint retcode)
 //+------------------------------------------------------------------+
 //| Sends one market order. Returns false and leaves outOrderTicket=0  |
 //| if every attempt failed or the stop distance was rejected before    |
-//| ever reaching the broker.                                           |
+//| ever reaching the broker. outFilledVolume/outSlippagePoints are     |
+//| read directly off the broker's own MqlTradeResult - never a          |
+//| synthetic/RNG estimate - so a caller can detect a partial fill       |
+//| (outFilledVolume < volume) and the realized slippage versus the      |
+//| price quoted right before the send (positive = worse than quoted).   |
 //+------------------------------------------------------------------+
 bool CLS_SendMarketOrder(const string symbol, const ENUM_CLS_DIRECTION direction, const double volume,
                           const double stopLoss, const double takeProfit, const long magic, const string comment,
-                          ulong &outOrderTicket)
+                          ulong &outOrderTicket, double &outFilledVolume, double &outSlippagePoints)
 {
-   outOrderTicket = 0;
+   outOrderTicket    = 0;
+   outFilledVolume   = 0.0;
+   outSlippagePoints = 0.0;
 
    for(int attempt = 1; attempt <= InpOrderRetryCount; attempt++)
    {
@@ -129,9 +135,27 @@ bool CLS_SendMarketOrder(const string symbol, const ENUM_CLS_DIRECTION direction
       }
       else if(result.retcode == TRADE_RETCODE_DONE || result.retcode == TRADE_RETCODE_DONE_PARTIAL)
       {
-         outOrderTicket = result.order;
+         outOrderTicket  = result.order;
+         outFilledVolume = result.volume;
+
+         const double point = (g_SymbolProfile.point > 0.0) ? g_SymbolProfile.point : SymbolInfoDouble(symbol, SYMBOL_POINT);
+         if(result.price > 0.0 && point > 0.0)
+         {
+            outSlippagePoints = (direction == CLS_DIR_BUY)
+               ? (result.price - entryPrice) / point
+               : (entryPrice - result.price) / point;
+         }
+
+         if(result.retcode == TRADE_RETCODE_DONE_PARTIAL || outFilledVolume < volume - CLS_PRICE_EPSILON)
+         {
+            CLS_Log(CLS_LOG_WARNING, "OrderSender", StringFormat(
+               "Partial fill: requested=%.2f filled=%.2f (%.1f%%), ticket=%I64u slippagePts=%.1f.",
+               volume, outFilledVolume, (volume > 0.0 ? 100.0 * outFilledVolume / volume : 0.0), result.order, outSlippagePoints));
+         }
+
          CLS_Log(CLS_LOG_INFO, "OrderSender", StringFormat(
-            "Order filled, ticket=%I64u retcode=%d (attempt %d/%d).", result.order, result.retcode, attempt, InpOrderRetryCount));
+            "Order filled, ticket=%I64u retcode=%d filledVolume=%.2f slippagePts=%.1f (attempt %d/%d).",
+            result.order, result.retcode, outFilledVolume, outSlippagePoints, attempt, InpOrderRetryCount));
          return true;
       }
       else if(!CLS_IsRetryableRetcode(result.retcode))

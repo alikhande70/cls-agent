@@ -53,6 +53,12 @@ input double InpSweepMinPierceATRFrac = 0.15; // Min pierce beyond a swept level
 input double InpFVGMinSizeATRFrac     = 0.10; // Min Fair Value Gap size, as a fraction of ATR, to be tradeable
 input double InpBMSMinBodyATRPct      = 0.50; // Min breakout candle body size, as a fraction of ATR, to confirm a valid BMS break
 
+input group "==== CLS Agent | Setup E - Order Block Rejection (Phase 2) ===="
+input double InpOBImpulseMinBodyATRPct    = 0.50; // Min impulse candle body size, as a fraction of ATR, to confirm a valid order-block break
+input int    InpOBMaxLookbackBars         = 10;   // Max bars scanned back from the impulse to find the opposite-colored order-block candle
+input int    InpOBMaxWaitBars             = 8;    // Max bars to wait for price to return into the order block before the setup expires
+input double InpOBMinRejectionWickATRFrac = 0.10; // Min rejection wick into the order block, as a fraction of ATR, to count as a real rejection
+
 input group "==== CLS Agent | Score Engine ===="
 input double InpMinScoreToTradeGold  = 65.0; // Minimum multiplicative score required for Gold
 input double InpMinScoreToTradeForex = 60.0; // Minimum multiplicative score required for Forex majors
@@ -60,12 +66,25 @@ input bool   InpEnableSetupA         = true; // Enable Setup A - Asian Sweep
 input bool   InpEnableSetupB         = true; // Enable Setup B - Daily Hunt
 input bool   InpEnableSetupC         = true; // Enable Setup C - FVG Fill
 input bool   InpEnableSetupD         = true; // Enable Setup D - BMS Continuation
+input bool   InpEnableSetupE         = true; // Enable Setup E - Order Block Rejection
+
+input group "==== CLS Agent | Score Engine - Factor Weights (Phase 2) ===="
+input double InpWeightTrendAlignment       = 0.20; // Weight: does price action support this setup's continuation/reversal claim
+input double InpWeightVolatilityRegime     = 0.15; // Weight: ATR regime quality
+input double InpWeightSessionQuality       = 0.15; // Weight: session liquidity quality
+input double InpWeightSpreadCondition      = 0.15; // Weight: spread-vs-cap quality
+input double InpWeightLiquidityContext     = 0.15; // Weight: proximity to a cached liquidity level (Asian/prev-day high-low)
+input double InpWeightMomentumConfirmation = 0.20; // Weight: recent closed-bar momentum agreement with signal direction
+// Weights are normalized by their own sum, so they do not need to add up to exactly 1.00.
 
 input group "==== CLS Agent | Risk Engine ===="
 input double InpBasketRiskPercent   = 0.30;  // Total basket risk, % of equity (NOT per order - Rule #3)
 input int    InpMaxOrdersPerBasket  = 2;     // Max number of orders inside one basket
 input double InpMaxDailyLossPercent = 1.00;  // Max daily loss, % of equity, before trading halts for the day
 input bool   InpSuperBurst          = false; // Allow oversized bursts beyond MaxOrdersPerBasket (advanced, disabled by default)
+input int    InpLossStreakReduceAt    = 2;    // Consecutive losses at/beyond which order risk is reduced
+input double InpLossStreakReduceFactor= 0.50; // Risk multiplier applied once InpLossStreakReduceAt is reached
+input int    InpLossStreakPauseAt     = 4;    // Consecutive losses at/beyond which trading pauses until a win resets the streak
 
 input group "==== CLS Agent | News Guard (manual input) ===="
 input bool   InpNewsGuardEnabled    = true; // Block entries around manually scheduled news windows

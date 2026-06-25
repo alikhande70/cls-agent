@@ -38,13 +38,16 @@ bool CLS_DetectSetupA_AsianSweep(const SSetupContext &ctx, SSetupSignal &signal)
    if(high1 > g_Levels.asianHigh + minPierce && close1 < g_Levels.asianHigh)
    {
       signal.setupType   = CLS_SETUP_A_ASIAN_SWEEP;
+      signal.setupClass  = CLS_CLASS_REVERSAL; // sweep-and-reverse pattern, never a continuation
       signal.direction   = CLS_DIR_SELL;
       signal.barTime     = ctx.barTime;
       signal.entryPrice  = close1;
       CLS_BuildStopsFromATR(CLS_DIR_SELL, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                              signal.stopLoss, signal.takeProfit);
-      signal.stopLoss    = MathMax(signal.stopLoss, high1 + ctx.atrValue * 0.1); // clear the sweep wick
+      signal.stopLoss          = MathMax(signal.stopLoss, high1 + ctx.atrValue * 0.1); // clear the sweep wick
+      signal.invalidationLevel = high1; // re-taking the sweep wick high breaks the reversal premise, tighter than the buffered stop
       signal.rawStrength = MathMin(1.0, (high1 - g_Levels.asianHigh) / MathMax(ctx.atrValue, CLS_PRICE_EPSILON));
+      signal.confidence  = signal.rawStrength * 100.0;
       signal.isValid     = true;
       return true;
    }
@@ -53,13 +56,16 @@ bool CLS_DetectSetupA_AsianSweep(const SSetupContext &ctx, SSetupSignal &signal)
    if(low1 < g_Levels.asianLow - minPierce && close1 > g_Levels.asianLow)
    {
       signal.setupType   = CLS_SETUP_A_ASIAN_SWEEP;
+      signal.setupClass  = CLS_CLASS_REVERSAL;
       signal.direction   = CLS_DIR_BUY;
       signal.barTime     = ctx.barTime;
       signal.entryPrice  = close1;
       CLS_BuildStopsFromATR(CLS_DIR_BUY, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                              signal.stopLoss, signal.takeProfit);
-      signal.stopLoss    = MathMin(signal.stopLoss, low1 - ctx.atrValue * 0.1);
+      signal.stopLoss          = MathMin(signal.stopLoss, low1 - ctx.atrValue * 0.1);
+      signal.invalidationLevel = low1;
       signal.rawStrength = MathMin(1.0, (g_Levels.asianLow - low1) / MathMax(ctx.atrValue, CLS_PRICE_EPSILON));
+      signal.confidence  = signal.rawStrength * 100.0;
       signal.isValid     = true;
       return true;
    }

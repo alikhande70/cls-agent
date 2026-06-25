@@ -62,6 +62,10 @@ double CLS_BacktestReport_Generate()
             g_PerfStats[(int)CLS_SETUP_D_BMS_CONTINUATION].tradesClosed,
             CLS_PerformanceStats_WinRate(g_PerfStats[(int)CLS_SETUP_D_BMS_CONTINUATION]),
             CLS_PerformanceStats_ProfitFactor(g_PerfStats[(int)CLS_SETUP_D_BMS_CONTINUATION])));
+         FileWrite(handle, StringFormat("  Setup E (Order Block Rej.) : trades=%d winRate=%.1f%% PF=%.2f",
+            g_PerfStats[(int)CLS_SETUP_E_ORDER_BLOCK_REJECTION].tradesClosed,
+            CLS_PerformanceStats_WinRate(g_PerfStats[(int)CLS_SETUP_E_ORDER_BLOCK_REJECTION]),
+            CLS_PerformanceStats_ProfitFactor(g_PerfStats[(int)CLS_SETUP_E_ORDER_BLOCK_REJECTION])));
 
          FileClose(handle);
          CLS_Log(CLS_LOG_INFO, "Reporting", StringFormat("Backtest summary written to %s.", path));

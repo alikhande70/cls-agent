@@ -33,13 +33,16 @@ bool CLS_DetectSetupB_DailyHunt(const SSetupContext &ctx, SSetupSignal &signal)
    if(high1 > g_Levels.prevDayHigh + minPierce && close1 < g_Levels.prevDayHigh)
    {
       signal.setupType   = CLS_SETUP_B_DAILY_HUNT;
+      signal.setupClass  = CLS_CLASS_REVERSAL;
       signal.direction   = CLS_DIR_SELL;
       signal.barTime     = ctx.barTime;
       signal.entryPrice  = close1;
       CLS_BuildStopsFromATR(CLS_DIR_SELL, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                              signal.stopLoss, signal.takeProfit);
-      signal.stopLoss    = MathMax(signal.stopLoss, high1 + ctx.atrValue * 0.1);
+      signal.stopLoss          = MathMax(signal.stopLoss, high1 + ctx.atrValue * 0.1);
+      signal.invalidationLevel = high1;
       signal.rawStrength = MathMin(1.0, (high1 - g_Levels.prevDayHigh) / MathMax(ctx.atrValue, CLS_PRICE_EPSILON));
+      signal.confidence  = signal.rawStrength * 100.0;
       signal.isValid     = true;
       return true;
    }
@@ -48,13 +51,16 @@ bool CLS_DetectSetupB_DailyHunt(const SSetupContext &ctx, SSetupSignal &signal)
    if(low1 < g_Levels.prevDayLow - minPierce && close1 > g_Levels.prevDayLow)
    {
       signal.setupType   = CLS_SETUP_B_DAILY_HUNT;
+      signal.setupClass  = CLS_CLASS_REVERSAL;
       signal.direction   = CLS_DIR_BUY;
       signal.barTime     = ctx.barTime;
       signal.entryPrice  = close1;
       CLS_BuildStopsFromATR(CLS_DIR_BUY, close1, ctx.atrValue, InpStopLossATRMultiplier, InpTakeProfitRMultiple,
                              signal.stopLoss, signal.takeProfit);
-      signal.stopLoss    = MathMin(signal.stopLoss, low1 - ctx.atrValue * 0.1);
+      signal.stopLoss          = MathMin(signal.stopLoss, low1 - ctx.atrValue * 0.1);
+      signal.invalidationLevel = low1;
       signal.rawStrength = MathMin(1.0, (g_Levels.prevDayLow - low1) / MathMax(ctx.atrValue, CLS_PRICE_EPSILON));
+      signal.confidence  = signal.rawStrength * 100.0;
       signal.isValid     = true;
       return true;
    }

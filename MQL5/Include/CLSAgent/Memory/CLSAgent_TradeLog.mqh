@@ -30,6 +30,7 @@ ENUM_CLS_SETUP_TYPE CLS_TradeLog_SetupFromMagic(const long magic)
    if(offset == CLS_MAGIC_OFFSET_SETUP_B) return CLS_SETUP_B_DAILY_HUNT;
    if(offset == CLS_MAGIC_OFFSET_SETUP_C) return CLS_SETUP_C_FVG_FILL;
    if(offset == CLS_MAGIC_OFFSET_SETUP_D) return CLS_SETUP_D_BMS_CONTINUATION;
+   if(offset == CLS_MAGIC_OFFSET_SETUP_E) return CLS_SETUP_E_ORDER_BLOCK_REJECTION;
    return CLS_SETUP_NONE;
 }
 

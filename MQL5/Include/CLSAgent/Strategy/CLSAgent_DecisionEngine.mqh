@@ -1,19 +1,27 @@
 //+------------------------------------------------------------------+
 //|                                    CLSAgent_DecisionEngine.mqh   |
-//|   CLS Agent v2.4+ - Strategy / Decision Engine - Part 4          |
+//|   CLS Agent v2.4+ - Strategy / Decision Engine - Part 4, upgraded  |
+//|   with an explicit veto layer in Phase 2                          |
 //|                                                                    |
-//|   Turns a scored signal into an accept/reject verdict against the  |
-//|   asset class's own threshold (Rule #8). This is purely a score    |
-//|   gate - spread/session/ATR/daily-loss hard gates belong to the    |
-//|   Risk Engine (Part 5), which runs after this regardless of the    |
-//|   verdict here so Rule #9 (log every accepted AND rejected signal) |
-//|   always has a complete SScoreResult to journal.                   |
+//|   Turns a scored signal into an accept/reject verdict. Score      |
+//|   below the asset class's own threshold (Rule #8) is NO TRADE      |
+//|   regardless of context; on top of that, an explicit veto layer    |
+//|   can reject a HIGH-scoring signal outright - high spread, an       |
+//|   active news/session block, or an extreme volatility spike. The     |
+//|   Risk Engine (Part 5) still independently re-derives these exact     |
+//|   same hard gates afterward regardless of this verdict (defense in     |
+//|   depth, Rule #9: every accepted AND rejected signal still reaches      |
+//|   the Journal with a complete SScoreResult) - this layer exists so      |
+//|   the Decision Engine itself never waves through a signal it can         |
+//|   already tell is unsafe, instead of leaving that solely to the           |
+//|   downstream Risk stage.                                                   |
 //+------------------------------------------------------------------+
 #ifndef CLSAGENT_DECISIONENGINE_MQH
 #define CLSAGENT_DECISIONENGINE_MQH
 
 #include "../Core/CLSAgent_Types.mqh"
 #include "../Market/CLSAgent_SymbolProfile.mqh"
+#include "../Risk/CLSAgent_NewsGuard.mqh"
 #include "CLSAgent_ScoreEngine.mqh"
 
 //+------------------------------------------------------------------+
@@ -30,6 +38,33 @@ bool CLS_DecideSignal(const SSetupContext &ctx, const SSetupSignal &signal, SSco
    }
 
    result.score = CLS_ComputeScore(ctx, signal);
+
+   // Veto layer: each of these can reject the signal outright even if its
+   // score cleared the threshold below.
+   if(!ctx.spreadAllowed)
+   {
+      result.status       = CLS_SIGNAL_REJECTED;
+      result.rejectReason = CLS_REJECT_SPREAD;
+      return false;
+   }
+   if(!ctx.sessionAllowed)
+   {
+      result.status       = CLS_SIGNAL_REJECTED;
+      result.rejectReason = CLS_REJECT_SESSION;
+      return false;
+   }
+   if(CLS_IsInNewsWindow(TimeCurrent()))
+   {
+      result.status       = CLS_SIGNAL_REJECTED;
+      result.rejectReason = CLS_REJECT_NEWS;
+      return false;
+   }
+   if(!ctx.atrRegimeAllowed)
+   {
+      result.status       = CLS_SIGNAL_REJECTED;
+      result.rejectReason = CLS_REJECT_ATR_REGIME;
+      return false;
+   }
 
    const double minScore = g_SymbolProfile.minScoreToTrade;
    if(result.score < minScore)

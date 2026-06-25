@@ -19,6 +19,7 @@
 #include "../Core/CLSAgent_Types.mqh"
 #include "../Core/CLSAgent_Constants.mqh"
 #include "../Core/CLSAgent_Inputs.mqh"
+#include "../Memory/CLSAgent_PerformanceStats.mqh"
 #include "CLSAgent_DailyLimits.mqh"
 #include "CLSAgent_NewsGuard.mqh"
 #include "CLSAgent_BasketRisk.mqh"
@@ -60,6 +61,16 @@ bool CLS_EvaluateRisk(const SSetupContext &ctx, const SSetupSignal &signal, cons
       return false;
    }
 
+   // Loss-streak protection: pause trading outright once the streak reaches
+   // InpLossStreakPauseAt; a win resets g_PerfStats[0].currentLossStreak to 0
+   // (CLS_PerformanceStats_Update), which is the only way out of this gate.
+   const int lossStreak = g_PerfStats[0].currentLossStreak;
+   if(lossStreak >= InpLossStreakPauseAt)
+   {
+      risk.rejectReason = CLS_REJECT_LOSS_STREAK;
+      return false;
+   }
+
    SBasketInfo basket;
    if(CLS_ScanCurrentBasket(ctx.symbol, signal.direction, basket))
    {
@@ -78,8 +89,15 @@ bool CLS_EvaluateRisk(const SSetupContext &ctx, const SSetupSignal &signal, cons
    // Rule #3/#4: the whole basket's target risk is fixed at InpBasketRiskPercent
    // and split evenly across its max order slots, so total basket risk never
    // grows as more orders are added - only how many slots are already filled.
-   const double riskPercentForOrder = InpBasketRiskPercent / (double)InpMaxOrdersPerBasket;
-   const double lotSize             = CLS_CalculateLotSize(signal.entryPrice, signal.stopLoss, riskPercentForOrder);
+   double riskPercentForOrder = InpBasketRiskPercent / (double)InpMaxOrdersPerBasket;
+
+   // Loss-streak protection: once the streak reaches InpLossStreakReduceAt
+   // (but hasn't yet hit the pause threshold above), shrink size rather than
+   // refuse the trade outright.
+   if(lossStreak >= InpLossStreakReduceAt)
+      riskPercentForOrder *= InpLossStreakReduceFactor;
+
+   const double lotSize = CLS_CalculateLotSize(signal.entryPrice, signal.stopLoss, riskPercentForOrder);
    if(lotSize <= 0.0)
    {
       risk.rejectReason = CLS_REJECT_OTHER;
