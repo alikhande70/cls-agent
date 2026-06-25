@@ -12,8 +12,9 @@
 //|   stage to Strategy/SetupDetector + Setup A/B/C/D. Part 4 wired    |
 //|   the Score/Decision Engine stage. Part 5 wired the Risk Engine    |
 //|   stage. Part 6 wired the Basket Execution stage. Part 7 wired       |
-//|   the Position Manager stage. Part 8 wires the Journal/Memory        |
-//|   stage. Stage from Report onward remains a named stub until Part 9.  |
+//|   the Position Manager stage. Part 8 wired the Journal/Memory        |
+//|   stage. Part 9 wires the Report stage (on-chart Debug Panel,          |
+//|   end-of-run performance CSV export, Strategy Tester summary).          |
 //+------------------------------------------------------------------+
 #property copyright "CLS Agent"
 #property link      ""
@@ -47,22 +48,25 @@
 #include <CLSAgent/Memory/CLSAgent_PerformanceStats.mqh>
 #include <CLSAgent/Memory/CLSAgent_TradeLog.mqh>
 #include <CLSAgent/Memory/CLSAgent_BasketLog.mqh>
+#include <CLSAgent/Reports/CLSAgent_DebugPanel.mqh>
+#include <CLSAgent/Reports/CLSAgent_ExportCSV.mqh>
+#include <CLSAgent/Reports/CLSAgent_BacktestReport.mqh>
 
 //+------------------------------------------------------------------+
-//| Pipeline stage stub still pending (Part 9). Stage 1 (Context        |
-//| Engine) is BuildSetupContext() below; Stage 2 (Setup Detector) is    |
-//| CLS_DetectSetups(); Stage 3 (Score/Decision Engine) is               |
-//| CLS_DecideSignal(); Stage 4 (Risk Engine) is CLS_EvaluateRisk();     |
-//| Stage 5 (Basket Execution) is CLS_ExecuteBasketOrder(); Stage 6       |
-//| (Position Manager) is CLS_ManageOpenPositions(); Stage 7 (Journal/     |
-//| Memory) is CLS_Journal_LogSignal() + CLS_BasketLog_Update() - all       |
-//| called directly from OnTick(). CLS_TradeLog_OnDealAdded() runs off       |
-//| the separate OnTradeTransaction() event instead (see below) since a      |
-//| position can close via the broker filling its SL/TP directly, never       |
-//| passing through OnTick() at all.                                           |
-//+------------------------------------------------------------------+
-void Stage_ReportLLMReview_STUB()                           { /* Part 9: Reports/DebugPanel, BacktestReport, ExportCSV */ }
-
+//| Every pipeline stage now maps to a real module call. Stage 1        |
+//| (Context Engine) is BuildSetupContext() below; Stage 2 (Setup         |
+//| Detector) is CLS_DetectSetups(); Stage 3 (Score/Decision Engine) is    |
+//| CLS_DecideSignal(); Stage 4 (Risk Engine) is CLS_EvaluateRisk();        |
+//| Stage 5 (Basket Execution) is CLS_ExecuteBasketOrder(); Stage 6          |
+//| (Position Manager) is CLS_ManageOpenPositions(); Stage 7 (Journal/        |
+//| Memory) is CLS_Journal_LogSignal() + CLS_BasketLog_Update(); Stage 8       |
+//| (Report) is CLS_DebugPanel_Update() - all called directly from             |
+//| OnTick(). CLS_TradeLog_OnDealAdded() runs off the separate                  |
+//| OnTradeTransaction() event instead (see below) since a position can         |
+//| close via the broker filling its SL/TP directly, never passing through      |
+//| OnTick() at all. CLS_Report_ExportPerformanceCSV() and                       |
+//| CLS_BacktestReport_Generate() are end-of-run reports, called from            |
+//| OnDeinit()/OnTester() instead of the per-bar pipeline.                         |
 //+------------------------------------------------------------------+
 //| Reject configurations that would be unsafe to run, before the EA  |
 //| reaches its first tick.                                            |
@@ -143,6 +147,12 @@ int OnInit()
       g_SymbolProfile.digits, g_SymbolProfile.digits, g_SymbolProfile.point, g_SymbolProfile.tickValue,
       g_SymbolProfile.stopsLevelPoints, g_SymbolProfile.maxSpreadPoints, g_SymbolProfile.minScoreToTrade));
 
+   // Debug Panel (Part 9) only gets a fresh SSetupContext once per closed bar
+   // via OnTick(); the timer re-renders every second in between so live
+   // fields (equity/basket P&L) never look stale while a bar is still forming.
+   if(InpShowDebugPanel)
+      EventSetTimer(1);
+
    return INIT_SUCCEEDED;
 }
 
@@ -151,6 +161,10 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
+   EventKillTimer();
+   CLS_DebugPanel_Clear();
+   CLS_Report_ExportPerformanceCSV();
+
    CLS_Indicators_Deinit();
    CLS_Log(CLS_LOG_INFO, "Deinit", StringFormat("CLS Agent stopping. Reason code=%d", reason));
 }
@@ -238,8 +252,6 @@ void OnTick()
       ctx.spreadPoints, (ctx.spreadAllowed ? "OK" : "BLOCKED"),
       (ctx.isContextValid ? "true" : "false")));
 
-   // Pipeline shape from here on - Part 9 replaces the remaining stub call
-   // with a real module call, without changing this call sequence.
    SSetupSignal  signal;
    SScoreResult  score;
    SRiskDecision risk;
@@ -280,7 +292,9 @@ void OnTick()
    // only writes a row when a direction's composition actually changed.
    CLS_BasketLog_Update(ctx.symbol);
 
-   Stage_ReportLLMReview_STUB();
+   // Report stage (Part 9) - on-chart visibility only, never feeds back into
+   // any decision the pipeline above already made.
+   CLS_DebugPanel_Update(ctx);
 }
 
 //+------------------------------------------------------------------+
@@ -298,16 +312,20 @@ void OnTradeTransaction(const MqlTradeTransaction &trans, const MqlTradeRequest 
 }
 
 //+------------------------------------------------------------------+
-//| Timer function - activated in Part 9 to refresh the debug panel.  |
+//| Only running while InpShowDebugPanel is true (see OnInit()) - keeps  |
+//| the on-chart panel's live fields current between bar closes.         |
 //+------------------------------------------------------------------+
 void OnTimer()
 {
+   CLS_DebugPanel_Refresh();
 }
 
 //+------------------------------------------------------------------+
-//| Tester evaluation hook - used by Part 9/10 backtest reporting.    |
+//| Fires once per Strategy Tester pass, after the run has fully ended.  |
+//| Returns the overall profit factor so it can be selected as the        |
+//| "Custom max" optimization criterion without any further wiring.       |
 //+------------------------------------------------------------------+
 double OnTester()
 {
-   return 0.0;
+   return CLS_BacktestReport_Generate();
 }

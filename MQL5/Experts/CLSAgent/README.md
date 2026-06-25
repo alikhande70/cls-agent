@@ -8,7 +8,7 @@ it never sends an order — that boundary is enforced in code, not just by conve
 
 ## Build status
 
-**Parts 1-8 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine, Basket Execution, Position Management, Memory/Journal.**
+**Parts 1-9 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine, Basket Execution, Position Management, Memory/Journal, Reports/Backtest.**
 
 Implemented so far:
 - **Part 1 — Core.** Folder skeleton for every module, fixed safety constants
@@ -123,9 +123,33 @@ Implemented so far:
   order count actually changed since the last bar. Wired into `OnTick()`
   directly (no stub remains for this stage); `CLS_TradeLog_OnDealAdded()`
   alone runs from the new `OnTradeTransaction()` handler instead.
+- **Part 9 — Reports / Debug Panel &amp; Backtest.** `DebugPanel`
+  (`CLS_DebugPanel_Update()` / `CLS_DebugPanel_Refresh()`) renders an
+  on-chart `Comment()` block — mode/permission flags, the current bar's
+  session/ATR/spread context, equity and daily P/L, both directions'
+  live basket state (reusing `BasketRisk`'s scan, same as `BasketLog`),
+  and running performance totals overall and per setup — gated entirely
+  by `InpShowDebugPanel`. It never feeds back into any decision; it only
+  renders state every other module already computed. The context itself
+  only refreshes once per closed bar from `OnTick()`, but a 1-second
+  `OnTimer()` (armed in `OnInit()`, killed in `OnDeinit()`) re-renders
+  from that same cached context in between so live fields (equity,
+  floating basket P/L) never look stale while a bar is still forming.
+  `ExportCSV` (`CLS_Report_ExportPerformanceCSV()`) overwrites a single
+  `performance.csv` snapshot of `g_PerfStats` on every call — a
+  point-in-time replace, unlike Part 8's append-only logs — called from
+  `OnDeinit()` so the latest totals are always on disk when the EA
+  stops. `BacktestReport` (`CLS_BacktestReport_Generate()`) writes a
+  human-readable `backtest_summary.txt` and returns the overall profit
+  factor; wired into `OnTester()`, which only fires once a Strategy
+  Tester pass has fully finished, so that return value can be selected
+  directly as MT5's "Custom max" optimization criterion with no further
+  configuration. Wired into `OnTick()`/`OnInit()`/`OnDeinit()`/
+  `OnTimer()`/`OnTester()` directly (no stub remains for this stage).
 
 Not implemented yet (later parts, do not edit ahead of schedule):
-Reports/backtest export.
+Final integration pass (Part 10) — end-to-end review across all modules,
+input-set sanity defaults, and any remaining polish before release.
 
 ## Folder map
 
@@ -167,12 +191,16 @@ MQL5/
     │   ├── CLSAgent_PositionManager.mqh
     │   ├── CLSAgent_PartialExit.mqh
     │   └── CLSAgent_Trailing.mqh
-    └── Memory/                     <- Part 8
-        ├── CLSAgent_CsvWriter.mqh
-        ├── CLSAgent_Journal.mqh
-        ├── CLSAgent_TradeLog.mqh
-        ├── CLSAgent_PerformanceStats.mqh
-        └── CLSAgent_BasketLog.mqh
+    ├── Memory/                     <- Part 8
+    │   ├── CLSAgent_CsvWriter.mqh
+    │   ├── CLSAgent_Journal.mqh
+    │   ├── CLSAgent_TradeLog.mqh
+    │   ├── CLSAgent_PerformanceStats.mqh
+    │   └── CLSAgent_BasketLog.mqh
+    └── Reports/                    <- Part 9
+        ├── CLSAgent_DebugPanel.mqh
+        ├── CLSAgent_ExportCSV.mqh
+        └── CLSAgent_BacktestReport.mqh
 ```
 
 ## Installing into MetaTrader 5
