@@ -8,7 +8,7 @@ it never sends an order — that boundary is enforced in code, not just by conve
 
 ## Build status
 
-**Parts 1-6 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine, Basket Execution.**
+**Parts 1-7 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine, Basket Execution, Position Management.**
 
 Implemented so far:
 - **Part 1 — Core.** Folder skeleton for every module, fixed safety constants
@@ -76,9 +76,32 @@ Implemented so far:
   `CLS_SendMarketOrder()` — Rule #1 (the LLM never sends orders) is enforced
   structurally by that exclusivity, not by a runtime flag. Wired into
   `OnTick()` directly (no stub remains for this stage).
+- **Part 7 — Execution / Position Management.** `Trailing` is a pure
+  calculation helper (`CLS_ComputeTrailingStop()`) — no broker calls — that
+  returns a candidate SL only when it strictly improves on the current one by
+  at least `InpTrailingStopStepPoints`. `PartialExit` closes
+  `InpPartialExitPercent` of a position exactly once, the first time it
+  reaches `InpPartialExitTriggerR`; since that "already done" fact cannot be
+  read back from the broker once the position's volume has changed, it is the
+  one place in the project that keeps its own small, ephemeral
+  ticket cache (`g_PartialExitedTickets[]`, pruned every pass, lost on EA
+  restart — Part 8 adds real persistence) instead of re-deriving everything
+  from live broker state the way `BasketRisk` does. `PositionManager`
+  (`CLS_ManageOpenPositions()`) is the orchestrator: once per closed bar it
+  scans this chart's own open positions (same symbol + magic-range filter as
+  `BasketRisk`) and applies, in order, Breakeven → Partial Exit → Trailing,
+  reusing `OrderSender`'s new mechanics-only `CLS_ModifyPositionStops()` /
+  `CLS_ClosePositionPartial()` (neither retries — Position Management
+  re-evaluates and retries on its own next pass instead of blocking the
+  tick). Progress through each stage is measured in R-multiples off a
+  deliberately stateless approximation, `oneR = ctx.atrValue *
+  InpStopLossATRMultiplier`, rather than caching each position's exact
+  original stop distance. Wired into `OnTick()` directly (no stub remains for
+  this stage) — runs every closed bar regardless of whether a new signal
+  fired that bar, since existing open positions still need managing.
 
 Not implemented yet (later parts, do not edit ahead of schedule):
-Position Management, Journal/adaptive state, and Reports/backtest export.
+Journal/adaptive state and Reports/backtest export.
 
 ## Folder map
 
@@ -114,9 +137,12 @@ MQL5/
     │   ├── CLSAgent_LotCalculator.mqh
     │   ├── CLSAgent_DailyLimits.mqh
     │   └── CLSAgent_NewsGuard.mqh
-    └── Execution/                  <- Part 6
+    └── Execution/                  <- Parts 6-7
         ├── CLSAgent_BasketExecutor.mqh
-        └── CLSAgent_OrderSender.mqh
+        ├── CLSAgent_OrderSender.mqh
+        ├── CLSAgent_PositionManager.mqh
+        ├── CLSAgent_PartialExit.mqh
+        └── CLSAgent_Trailing.mqh
 ```
 
 ## Installing into MetaTrader 5
@@ -133,6 +159,8 @@ MQL5/
 the EA right now cannot place any order regardless of how Basket Execution
 (Part 6) is configured — both `Mode=AUTO_TRADE` and `AutoTrade=true` must be
 set explicitly before `CLS_ExecuteBasketOrder()` will ever call `OrderSend()`.
+Position Management (Part 7) only ever modifies/partially-closes positions
+this same EA already opened, so it carries no extra gate beyond that.
 
 See the repository root for the full project specification and the part-by-part
 delivery plan.

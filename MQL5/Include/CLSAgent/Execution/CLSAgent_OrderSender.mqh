@@ -7,7 +7,13 @@
 //|   apart) but only on transient rejections (requote/timeout/price   |
 //|   moved) - never on rejections a retry cannot fix (invalid stops,   |
 //|   no money, trading disabled). Knows nothing about setups, scoring  |
-//|   or baskets - BasketExecutor owns that policy and calls this.      |
+//|   or baskets - BasketExecutor (Part 6) owns that policy and calls    |
+//|   CLS_SendMarketOrder(). Part 7 (Position Management) reuses this    |
+//|   same mechanics layer for its own two actions - modifying an open    |
+//|   position's SL/TP and partially closing it - via                     |
+//|   CLS_ModifyPositionStops()/CLS_ClosePositionPartial() below; neither  |
+//|   retries, since Position Management re-evaluates and retries on its   |
+//|   own next pass instead of blocking here.                              |
 //+------------------------------------------------------------------+
 #ifndef CLSAGENT_ORDERSENDER_MQH
 #define CLSAGENT_ORDERSENDER_MQH
@@ -146,6 +152,72 @@ bool CLS_SendMarketOrder(const string symbol, const ENUM_CLS_DIRECTION direction
 
    CLS_Log(CLS_LOG_ERROR, "OrderSender", "Order send failed after all retry attempts.");
    return false;
+}
+
+//+------------------------------------------------------------------+
+//| Modifies an open position's SL/TP. No retry loop - Position        |
+//| Management (Part 7) re-evaluates and retries on its own next pass   |
+//| rather than blocking the tick here.                                  |
+//+------------------------------------------------------------------+
+bool CLS_ModifyPositionStops(const ulong ticket, const string symbol, const double newSL, const double newTP)
+{
+   MqlTradeRequest request;
+   MqlTradeResult  result;
+   ZeroMemory(request);
+   ZeroMemory(result);
+
+   request.action   = TRADE_ACTION_SLTP;
+   request.position = ticket;
+   request.symbol   = symbol;
+   request.sl       = newSL;
+   request.tp       = newTP;
+
+   if(!OrderSend(request, result) || (result.retcode != TRADE_RETCODE_DONE && result.retcode != TRADE_RETCODE_DONE_PARTIAL))
+   {
+      CLS_Log(CLS_LOG_WARNING, "OrderSender", StringFormat(
+         "SL/TP modify failed for ticket=%I64u retcode=%d \"%s\".", ticket, result.retcode, result.comment));
+      return false;
+   }
+
+   CLS_Log(CLS_LOG_INFO, "OrderSender", StringFormat(
+      "SL/TP modified for ticket=%I64u newSL=%.5f newTP=%.5f.", ticket, newSL, newTP));
+   return true;
+}
+
+//+------------------------------------------------------------------+
+//| Closes part of an open position at market. No retry loop - same     |
+//| reasoning as CLS_ModifyPositionStops() above.                       |
+//+------------------------------------------------------------------+
+bool CLS_ClosePositionPartial(const ulong ticket, const string symbol, const ENUM_POSITION_TYPE posType, const double volume)
+{
+   MqlTick tick;
+   if(!SymbolInfoTick(symbol, tick))
+      return false;
+
+   MqlTradeRequest request;
+   MqlTradeResult  result;
+   ZeroMemory(request);
+   ZeroMemory(result);
+
+   request.action       = TRADE_ACTION_DEAL;
+   request.position     = ticket;
+   request.symbol       = symbol;
+   request.volume       = volume;
+   request.type         = (posType == POSITION_TYPE_BUY) ? ORDER_TYPE_SELL : ORDER_TYPE_BUY;
+   request.price        = (posType == POSITION_TYPE_BUY) ? tick.bid : tick.ask;
+   request.deviation    = InpMaxSlippagePoints;
+   request.type_filling = CLS_ResolveFillingMode(symbol);
+
+   if(!OrderSend(request, result) || (result.retcode != TRADE_RETCODE_DONE && result.retcode != TRADE_RETCODE_DONE_PARTIAL))
+   {
+      CLS_Log(CLS_LOG_WARNING, "OrderSender", StringFormat(
+         "Partial close failed for ticket=%I64u retcode=%d \"%s\".", ticket, result.retcode, result.comment));
+      return false;
+   }
+
+   CLS_Log(CLS_LOG_INFO, "OrderSender", StringFormat(
+      "Partial close sent for ticket=%I64u volume=%.2f.", ticket, volume));
+   return true;
 }
 
 #endif // CLSAGENT_ORDERSENDER_MQH

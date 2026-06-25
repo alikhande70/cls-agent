@@ -11,8 +11,9 @@
 //|   stage to the Market modules. Part 3 wired the Setup Detector     |
 //|   stage to Strategy/SetupDetector + Setup A/B/C/D. Part 4 wired    |
 //|   the Score/Decision Engine stage. Part 5 wired the Risk Engine    |
-//|   stage. Part 6 wires the Basket Execution stage. Stages from       |
-//|   Position Manager onward remain named stubs until Parts 7-9.       |
+//|   stage. Part 6 wired the Basket Execution stage. Part 7 wires      |
+//|   the Position Manager stage. Stages from Journal/Memory onward      |
+//|   remain named stubs until Parts 8-9.                                 |
 //+------------------------------------------------------------------+
 #property copyright "CLS Agent"
 #property link      ""
@@ -38,16 +39,19 @@
 #include <CLSAgent/Risk/CLSAgent_RiskEngine.mqh>
 #include <CLSAgent/Execution/CLSAgent_OrderSender.mqh>
 #include <CLSAgent/Execution/CLSAgent_BasketExecutor.mqh>
+#include <CLSAgent/Execution/CLSAgent_Trailing.mqh>
+#include <CLSAgent/Execution/CLSAgent_PartialExit.mqh>
+#include <CLSAgent/Execution/CLSAgent_PositionManager.mqh>
 
 //+------------------------------------------------------------------+
-//| Pipeline stage stubs still pending (Parts 7-9). Stage 1 (Context   |
+//| Pipeline stage stubs still pending (Parts 8-9). Stage 1 (Context   |
 //| Engine) is BuildSetupContext() below; Stage 2 (Setup Detector) is   |
 //| CLS_DetectSetups(); Stage 3 (Score/Decision Engine) is              |
 //| CLS_DecideSignal(); Stage 4 (Risk Engine) is CLS_EvaluateRisk();    |
-//| Stage 5 (Basket Execution) is CLS_ExecuteBasketOrder() - all        |
-//| called directly from OnTick().                                      |
+//| Stage 5 (Basket Execution) is CLS_ExecuteBasketOrder(); Stage 6      |
+//| (Position Manager) is CLS_ManageOpenPositions() - all called          |
+//| directly from OnTick().                                                |
 //+------------------------------------------------------------------+
-void Stage_PositionManager_STUB()                          { /* Part 7: Execution/PositionManager, PartialExit, Trailing */ }
 void Stage_JournalMemory_STUB()                            { /* Part 8: Memory/Journal, TradeLog, BasketLog, PerformanceStats */ }
 void Stage_ReportLLMReview_STUB()                           { /* Part 9: Reports/DebugPanel, BacktestReport, ExportCSV */ }
 
@@ -255,7 +259,10 @@ void OnTick()
       CLS_ExecuteBasketOrder(ctx, signal, risk);
    }
 
-   Stage_PositionManager_STUB();
+   // Runs every closed bar regardless of whether a new signal fired this bar -
+   // existing open positions still need breakeven/partial-exit/trailing checks.
+   CLS_ManageOpenPositions(ctx);
+
    Stage_JournalMemory_STUB();
    Stage_ReportLLMReview_STUB();
 }

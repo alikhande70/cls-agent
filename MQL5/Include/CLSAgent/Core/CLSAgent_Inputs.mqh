@@ -77,6 +77,18 @@ input group "==== CLS Agent | Basket Execution (used from Part 6) ===="
 input int InpOrderRetryCount   = 3;   // Broker rejection retry attempts
 input int InpOrderRetryDelayMs = 200; // Delay between retries, in milliseconds
 
+input group "==== CLS Agent | Position Management (Part 7) ===="
+input bool   InpUseBreakeven              = true;  // Move SL to breakeven once price reaches InpBreakevenTriggerR
+input double InpBreakevenTriggerR         = 1.0;   // Profit, in R-multiples of ATR*InpStopLossATRMultiplier, that triggers breakeven
+input int    InpBreakevenOffsetPoints     = 20;    // Points beyond entry to lock in at breakeven (covers spread/commission)
+input bool   InpUsePartialExit            = true;  // Close part of the position once price reaches InpPartialExitTriggerR
+input double InpPartialExitTriggerR       = 1.0;   // Profit, in R-multiples, that triggers the one-shot partial exit
+input double InpPartialExitPercent        = 50.0;  // % of current volume closed by the partial exit
+input bool   InpUseTrailingStop           = true;  // Trail the stop once price reaches InpTrailingStopTriggerR
+input double InpTrailingStopTriggerR      = 1.5;   // Profit, in R-multiples, that activates trailing
+input double InpTrailingStopATRMultiplier = 1.0;   // Trailing distance behind price = ATR * this multiplier
+input int    InpTrailingStopStepPoints    = 50;    // Min SL improvement, in points, before sending another modify
+
 input group "==== CLS Agent | Logging & Debug ===="
 input ENUM_CLS_LOG_LEVEL InpLogLevel      = CLS_LOG_INFO; // Minimum severity printed to the Experts log
 input bool                InpLogToFile     = true;          // Mirror log lines to Files\CLSAgent\logs\ (used from Part 8)
