@@ -133,6 +133,7 @@ int OnInit()
 
    CLS_SpreadBuffer_Init();
    CLS_PartialExit_LoadState();
+   CLS_SetupD_LoadState();
    CheckAccountMarginMode();
 
    CLS_Log(CLS_LOG_INFO, "Init", StringFormat(
@@ -241,6 +242,13 @@ void OnTick()
       CLS_Log(CLS_LOG_INFO, "Tick", "New trading day detected, daily P/L baseline reset.");
 
    RefreshTradingPermissionFlag();
+
+   // Rule #7 hard stop: once daily loss is breached, flatten existing exposure
+   // immediately instead of only blocking new entries - checked every tick,
+   // not gated by closed-bar, since capital protection should not wait for the
+   // next bar close. Cheap no-op once nothing of this EA's remains open.
+   if(CLS_IsDailyLossLimitHit())
+      CLS_FlattenAllPositions(_Symbol, "Daily loss limit");
 
    // Rule #6: act only once per fully closed bar, never on the forming bar.
    if(!CLS_State_IsNewBar(_Symbol, PERIOD_CURRENT))

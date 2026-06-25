@@ -9,6 +9,11 @@
 //|   holds beyond the broken level -> fire the continuation entry.    |
 //|   Single-symbol-per-chart in v1, so one static state is sufficient |
 //|   (see Multi-Symbol Manager limitation noted in Part 1).           |
+//|                                                                    |
+//|   Armed state is mirrored to CLS_FILES_STATE_DIR on every change   |
+//|   and reloaded once in OnInit() (same restart-safety convention as |
+//|   CLSAgent_PartialExit.mqh's ticket cache), so an EA restart while  |
+//|   armed and waiting for a pullback does not silently lose it.      |
 //+------------------------------------------------------------------+
 #ifndef CLSAGENT_SETUPD_BMSCONTINUATION_MQH
 #define CLSAGENT_SETUPD_BMSCONTINUATION_MQH
@@ -16,6 +21,7 @@
 #include "../Core/CLSAgent_Constants.mqh"
 #include "../Core/CLSAgent_Types.mqh"
 #include "../Core/CLSAgent_Inputs.mqh"
+#include "../Core/CLSAgent_Utils.mqh"
 #include "CLSAgent_SetupContext.mqh"
 
 #define CLS_BMS_MAX_PULLBACK_WAIT_BARS 6
@@ -39,6 +45,63 @@ struct SBMSState
 };
 
 SBMSState g_BMSState;
+
+//+------------------------------------------------------------------+
+//| Overwrites the state file with the current armed state - a         |
+//| point-in-time snapshot, same FILE_WRITE convention as               |
+//| CLSAgent_PartialExit.mqh's save. Called after every mutation of      |
+//| g_BMSState so the on-disk copy never lags the in-memory one.          |
+//+------------------------------------------------------------------+
+void CLS_SetupD_SaveState()
+{
+   const string path   = CLS_FILES_STATE_DIR + "setup_d_bms.state";
+   const int    handle = FileOpen(path, FILE_WRITE | FILE_TXT | FILE_ANSI);
+   if(handle == INVALID_HANDLE)
+   {
+      CLS_Log(CLS_LOG_ERROR, "SetupD", StringFormat("Failed to save state to %s, error=%d.", path, GetLastError()));
+      return;
+   }
+
+   FileWrite(handle, (string)(g_BMSState.armed ? 1 : 0));
+   FileWrite(handle, (string)(int)g_BMSState.direction);
+   FileWrite(handle, DoubleToString(g_BMSState.breakLevel, 10));
+   FileWrite(handle, DoubleToString(g_BMSState.breakBodyStrength, 10));
+   FileWrite(handle, (string)g_BMSState.barsSinceBreak);
+
+   FileClose(handle);
+}
+
+//+------------------------------------------------------------------+
+//| Call once from OnInit() - repopulates g_BMSState from the previous   |
+//| run's snapshot so a restart while armed and waiting for a pullback    |
+//| does not silently drop back to "not armed." Silent no-op (defaults)    |
+//| if the file does not exist yet, e.g. first-ever run.                     |
+//+------------------------------------------------------------------+
+void CLS_SetupD_LoadState()
+{
+   g_BMSState = SBMSState();
+
+   const string path = CLS_FILES_STATE_DIR + "setup_d_bms.state";
+   if(!FileIsExist(path))
+      return;
+
+   const int handle = FileOpen(path, FILE_READ | FILE_TXT | FILE_ANSI);
+   if(handle == INVALID_HANDLE)
+      return;
+
+   if(!FileIsEnding(handle)) g_BMSState.armed             = (StringToInteger(FileReadString(handle)) != 0);
+   if(!FileIsEnding(handle)) g_BMSState.direction         = (ENUM_CLS_DIRECTION)StringToInteger(FileReadString(handle));
+   if(!FileIsEnding(handle)) g_BMSState.breakLevel        = StringToDouble(FileReadString(handle));
+   if(!FileIsEnding(handle)) g_BMSState.breakBodyStrength = StringToDouble(FileReadString(handle));
+   if(!FileIsEnding(handle)) g_BMSState.barsSinceBreak    = (int)StringToInteger(FileReadString(handle));
+
+   FileClose(handle);
+
+   if(g_BMSState.armed)
+      CLS_Log(CLS_LOG_INFO, "SetupD", StringFormat(
+         "Restored armed BMS state from %s (direction=%s, breakLevel=%.5f, barsSinceBreak=%d).",
+         path, CLS_DirectionToString(g_BMSState.direction), g_BMSState.breakLevel, g_BMSState.barsSinceBreak));
+}
 
 bool CLS_DetectSetupD_BMSContinuation(const SSetupContext &ctx, SSetupSignal &signal)
 {
@@ -74,6 +137,7 @@ bool CLS_DetectSetupD_BMSContinuation(const SSetupContext &ctx, SSetupSignal &si
             signal.rawStrength = g_BMSState.breakBodyStrength;
             signal.isValid     = true;
             g_BMSState.armed = false; // one shot per break
+            CLS_SetupD_SaveState();
             return true;
          }
       }
@@ -95,12 +159,17 @@ bool CLS_DetectSetupD_BMSContinuation(const SSetupContext &ctx, SSetupSignal &si
             signal.rawStrength = g_BMSState.breakBodyStrength;
             signal.isValid     = true;
             g_BMSState.armed = false;
+            CLS_SetupD_SaveState();
             return true;
          }
       }
 
       if(g_BMSState.barsSinceBreak > CLS_BMS_MAX_PULLBACK_WAIT_BARS)
          g_BMSState.armed = false; // pullback never came in time
+
+      // Covers this bar's barsSinceBreak increment and any invalidation/expiry
+      // above that did not already return - one save per bar while in Phase 2.
+      CLS_SetupD_SaveState();
 
       if(g_BMSState.armed)
          return false; // still waiting, nothing to emit this bar
@@ -124,6 +193,7 @@ bool CLS_DetectSetupD_BMSContinuation(const SSetupContext &ctx, SSetupSignal &si
       g_BMSState.breakLevel        = swingHigh;
       g_BMSState.breakBodyStrength = bodyStrength;
       g_BMSState.barsSinceBreak    = 0;
+      CLS_SetupD_SaveState();
       return false; // armed now, continuation entry fires on a later pullback bar
    }
 
@@ -134,6 +204,7 @@ bool CLS_DetectSetupD_BMSContinuation(const SSetupContext &ctx, SSetupSignal &si
       g_BMSState.breakLevel        = swingLow;
       g_BMSState.breakBodyStrength = bodyStrength;
       g_BMSState.barsSinceBreak    = 0;
+      CLS_SetupD_SaveState();
       return false;
    }
 
