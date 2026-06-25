@@ -13,8 +13,11 @@
 //|   the Score/Decision Engine stage. Part 5 wired the Risk Engine    |
 //|   stage. Part 6 wired the Basket Execution stage. Part 7 wired       |
 //|   the Position Manager stage. Part 8 wired the Journal/Memory        |
-//|   stage. Part 9 wires the Report stage (on-chart Debug Panel,          |
+//|   stage. Part 9 wired the Report stage (on-chart Debug Panel,          |
 //|   end-of-run performance CSV export, Strategy Tester summary).          |
+//|   Part 10 is the final integration pass: stale input annotations        |
+//|   pointing at not-yet-built parts removed, and PartialExit's ticket       |
+//|   cache given real cross-restart persistence. All 10 parts done.           |
 //+------------------------------------------------------------------+
 #property copyright "CLS Agent"
 #property link      ""
@@ -129,6 +132,7 @@ int OnInit()
       return INIT_FAILED;
 
    CLS_SpreadBuffer_Init();
+   CLS_PartialExit_LoadState();
    CheckAccountMarginMode();
 
    CLS_Log(CLS_LOG_INFO, "Init", StringFormat(

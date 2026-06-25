@@ -1,27 +1,85 @@
 //+------------------------------------------------------------------+
 //|                                         CLSAgent_PartialExit.mqh |
-//|   CLS Agent v2.4+ - Execution / Partial Exit - Part 7            |
+//|   CLS Agent v2.4+ - Execution / Partial Exit - Part 7/10         |
 //|                                                                    |
 //|   Closes InpPartialExitPercent of a position once it reaches        |
 //|   InpPartialExitTriggerR, exactly once per ticket. There is no way   |
 //|   to infer "already done" from broker data alone (the position's     |
-//|   own volume shrinks either way), so this keeps a narrow, ephemeral  |
-//|   one-shot-guard cache here - the only exception in the project to    |
-//|   the "always read live broker state, never a separate tally"        |
-//|   philosophy (contrast CLSAgent_BasketRisk.mqh). Lost on EA restart;  |
-//|   the only consequence is a position being partial-exited a second    |
-//|   time after a restart, not a risk breach. Part 8 (Memory/Journal)    |
-//|   adds real persistence later.                                        |
+//|   own volume shrinks either way), so this keeps a narrow one-shot-     |
+//|   guard cache here - the only exception in the project to the          |
+//|   "always read live broker state, never a separate tally"              |
+//|   philosophy (contrast CLSAgent_BasketRisk.mqh). The cache is mirrored   |
+//|   to CLS_FILES_STATE_DIR on every change (Part 10) and reloaded once      |
+//|   in OnInit(), so an EA restart mid-trade still remembers which open       |
+//|   tickets were already partial-exited instead of doing it twice.            |
 //+------------------------------------------------------------------+
 #ifndef CLSAGENT_PARTIALEXIT_MQH
 #define CLSAGENT_PARTIALEXIT_MQH
 
+#include "../Core/CLSAgent_Constants.mqh"
 #include "../Core/CLSAgent_Inputs.mqh"
 #include "../Core/CLSAgent_Utils.mqh"
 #include "../Risk/CLSAgent_LotCalculator.mqh"
 #include "CLSAgent_OrderSender.mqh"
 
 ulong g_PartialExitedTickets[];
+
+//+------------------------------------------------------------------+
+//| Overwrites the state file with the current in-memory cache - a      |
+//| point-in-time snapshot (FILE_WRITE alone truncates), same convention  |
+//| as Part 9's CLS_Report_ExportPerformanceCSV(). Unlike that export,      |
+//| this is functional state rather than a log mirror, so it is NOT gated   |
+//| by InpLogToFile.                                                          |
+//+------------------------------------------------------------------+
+void CLS_PartialExit_SaveState()
+{
+   const string path   = CLS_FILES_STATE_DIR + "partial_exits.state";
+   const int    handle = FileOpen(path, FILE_WRITE | FILE_TXT | FILE_ANSI);
+   if(handle == INVALID_HANDLE)
+   {
+      CLS_Log(CLS_LOG_ERROR, "PartialExit", StringFormat("Failed to save state to %s, error=%d.", path, GetLastError()));
+      return;
+   }
+
+   const int n = ArraySize(g_PartialExitedTickets);
+   for(int i = 0; i < n; i++)
+      FileWrite(handle, (string)g_PartialExitedTickets[i]);
+
+   FileClose(handle);
+}
+
+//+------------------------------------------------------------------+
+//| Call once from OnInit() - repopulates the cache from the previous     |
+//| run's snapshot so a restart mid-trade does not partial-exit a          |
+//| position a second time. Silent no-op (empty cache) if the file does     |
+//| not exist yet, e.g. first-ever run.                                       |
+//+------------------------------------------------------------------+
+void CLS_PartialExit_LoadState()
+{
+   ArrayResize(g_PartialExitedTickets, 0);
+
+   const string path = CLS_FILES_STATE_DIR + "partial_exits.state";
+   if(!FileIsExist(path))
+      return;
+
+   const int handle = FileOpen(path, FILE_READ | FILE_TXT | FILE_ANSI);
+   if(handle == INVALID_HANDLE)
+      return;
+
+   while(!FileIsEnding(handle))
+   {
+      const string line = FileReadString(handle);
+      if(StringLen(line) == 0)
+         continue;
+
+      const int n = ArraySize(g_PartialExitedTickets);
+      ArrayResize(g_PartialExitedTickets, n + 1);
+      g_PartialExitedTickets[n] = (ulong)StringToInteger(line);
+   }
+
+   FileClose(handle);
+   CLS_Log(CLS_LOG_INFO, "PartialExit", StringFormat("Restored %d partial-exit ticket(s) from %s.", ArraySize(g_PartialExitedTickets), path));
+}
 
 bool CLS_PartialExit_AlreadyDone(const ulong ticket)
 {
@@ -37,6 +95,7 @@ void CLS_PartialExit_MarkDone(const ulong ticket)
    const int n = ArraySize(g_PartialExitedTickets);
    ArrayResize(g_PartialExitedTickets, n + 1);
    g_PartialExitedTickets[n] = ticket;
+   CLS_PartialExit_SaveState();
 }
 
 //+------------------------------------------------------------------+
@@ -68,9 +127,14 @@ void CLS_PartialExit_Prune(const ulong &liveTickets[], const int liveCount)
       }
    }
 
+   const bool changed = (ArraySize(kept) != n);
+
    ArrayResize(g_PartialExitedTickets, ArraySize(kept));
    for(int i = 0; i < ArraySize(kept); i++)
       g_PartialExitedTickets[i] = kept[i];
+
+   if(changed)
+      CLS_PartialExit_SaveState();
 }
 
 //+------------------------------------------------------------------+

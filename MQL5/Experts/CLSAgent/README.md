@@ -8,7 +8,7 @@ it never sends an order — that boundary is enforced in code, not just by conve
 
 ## Build status
 
-**Parts 1-9 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine, Basket Execution, Position Management, Memory/Journal, Reports/Backtest.**
+**Parts 1-10 of 10 done — Project Skeleton, Market Foundation, Setup Detection, Score Engine, Risk Engine, Basket Execution, Position Management, Memory/Journal, Reports/Backtest, Final Integration. Build complete.**
 
 Implemented so far:
 - **Part 1 — Core.** Folder skeleton for every module, fixed safety constants
@@ -83,10 +83,12 @@ Implemented so far:
   `InpPartialExitPercent` of a position exactly once, the first time it
   reaches `InpPartialExitTriggerR`; since that "already done" fact cannot be
   read back from the broker once the position's volume has changed, it is the
-  one place in the project that keeps its own small, ephemeral
-  ticket cache (`g_PartialExitedTickets[]`, pruned every pass, lost on EA
-  restart — Part 8 adds real persistence) instead of re-deriving everything
-  from live broker state the way `BasketRisk` does. `PositionManager`
+  one place in the project that keeps its own small ticket cache
+  (`g_PartialExitedTickets[]`, pruned every pass) instead of re-deriving
+  everything from live broker state the way `BasketRisk` does; the cache is
+  mirrored to `Files/CLSAgent/state/partial_exits.state` on every change and
+  reloaded once in `OnInit()` (Part 10), so a restart mid-trade still
+  remembers which open tickets were already partial-exited. `PositionManager`
   (`CLS_ManageOpenPositions()`) is the orchestrator: once per closed bar it
   scans this chart's own open positions (same symbol + magic-range filter as
   `BasketRisk`) and applies, in order, Breakeven → Partial Exit → Trailing,
@@ -146,10 +148,30 @@ Implemented so far:
   directly as MT5's "Custom max" optimization criterion with no further
   configuration. Wired into `OnTick()`/`OnInit()`/`OnDeinit()`/
   `OnTimer()`/`OnTester()` directly (no stub remains for this stage).
+- **Part 10 — Final Integration.** End-to-end review across every module
+  now that all nine implementation parts are wired in: removed the
+  `CLSAgent_Inputs.mqh` annotations that flagged inputs as inert until a
+  not-yet-built part existed (`"(used from Part N)"`) — every consuming
+  module exists now, so those inputs are live from the first tick. Closed
+  a real gap left open since Part 7: `PartialExit`'s one-shot ticket cache
+  (`g_PartialExitedTickets[]`) is now mirrored to
+  `Files/CLSAgent/state/partial_exits.state` on every change
+  (`CLS_PartialExit_SaveState()`) and reloaded once in `OnInit()`
+  (`CLS_PartialExit_LoadState()`), so an EA restart mid-trade no longer
+  risks partial-exiting the same position twice — the project's existing
+  `CLS_FILES_STATE_DIR` constant existed for exactly this and had never
+  been used until now. Verified every `.mq5`/`.mqh` file in the project
+  has balanced braces/parens (after stripping comments and string
+  literals, to rule out false positives from interval-notation strings
+  like `"(0, 5]%."`) and confirmed no stray `STUB`/`TODO`/`FIXME` markers
+  remain anywhere in the tree.
 
-Not implemented yet (later parts, do not edit ahead of schedule):
-Final integration pass (Part 10) — end-to-end review across all modules,
-input-set sanity defaults, and any remaining polish before release.
+Not implemented yet: nothing — all 10 parts are complete.
+`MQL5/Include/CLSAgent/Tests/` intentionally ships empty (only `.gitkeep`)
+in v1: every module is verified by manual code review plus the balance
+checks above, since no MQL5 compiler/test runner was available while
+building this; wiring up real `.mq5`-script-based or Strategy-Tester-driven
+tests is left for a future pass, not an oversight.
 
 ## Folder map
 
@@ -220,5 +242,5 @@ set explicitly before `CLS_ExecuteBasketOrder()` will ever call `OrderSend()`.
 Position Management (Part 7) only ever modifies/partially-closes positions
 this same EA already opened, so it carries no extra gate beyond that.
 
-See the repository root for the full project specification and the part-by-part
-delivery plan.
+This file is the project's own specification and build log — the repository
+root `README.md` is unrelated template boilerplate, not a spec for this EA.
