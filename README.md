@@ -70,6 +70,53 @@ safety rules contributions must preserve.
 See [ROADMAP.md](ROADMAP.md) for the planned path to a stable release,
 and [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
+## EA roadmap to live trading
+
+CLS Agent is currently in the **testing / backtesting / demo-readiness**
+phase. It is a deterministic, rule-based EA, and it **may eventually be used on
+a real account** — but only after a documented sequence of readiness gates
+passes and a human explicitly approves:
+
+1. Compile Verification
+2. Signal-Only Test
+3. Strategy Tester Validation
+4. Risk Engine Traceability
+5. Strategy / Execution Separation
+6. Multi-Symbol / Multi-Timeframe Backtest
+7. Performance Risk Review
+8. Demo Forward Testing
+9. Live Risk Caps
+10. Human Live Approval
+
+No gate self-approves, and Gate 10 is a manual human decision. The full
+definitions are in
+[docs/REAL_ACCOUNT_READINESS_GATE.md](docs/REAL_ACCOUNT_READINESS_GATE.md).
+
+LLM / MCP / Companion tools (including Claude Code and Claude Cowork) are
+**review and validation helpers only** — they read code and exported evidence
+and generate reports. They do **not** send orders, enable AutoTrade, change
+live risk settings, or control live execution. This boundary is described in
+[docs/AGENT_COMPANION_BOUNDARY.md](docs/AGENT_COMPANION_BOUNDARY.md) and anchored
+in code by the `CLS_LLM_CAN_SEND_ORDERS = false` constant.
+
+## Readiness layer & helper scripts
+
+The [`docs/`](docs/) folder documents the readiness gates and validation
+workflows, and [`scripts/`](scripts/) provides **read-only** Python helpers
+(standard library only) that turn exported evidence into gate reports:
+
+| Script | Purpose |
+|---|---|
+| `scripts/parse_metaeditor_compile_log.py` | Parse a MetaEditor compile log (Gate 1) |
+| `scripts/validate_cls_backtest_package.py` | Validate an exported test package (Gates 2/3/6) |
+| `scripts/audit_cls_risk_boundary.py` | Audit risk-boundary traceability (Gate 4) |
+| `scripts/review_cls_performance.py` | Engineering performance/demo-readiness review (Gates 7/8) |
+| `scripts/static_safety_scan.py` | Confirm Strategy/Execution separation in source (Gate 5) |
+
+None of these scripts control MetaTrader 5, connect to a broker, send orders,
+enable AutoTrade, change EA parameters, or handle credentials. See
+[scripts/README_COMPILE_HELPERS.md](scripts/README_COMPILE_HELPERS.md).
+
 ## Download
 
 **Option A — Download ZIP from GitHub**
