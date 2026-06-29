@@ -1,0 +1,16 @@
+# Python bytecode cache from running the read-only helper scripts in scripts/
+__pycache__/
+*.pyc
+
+# Local readiness-report outputs produced by the helper scripts
+# (evidence/reports are attached per-gate, not committed wholesale)
+compile_summary.md
+compile_summary.json
+validation.md
+validation.json
+risk_boundary_audit.md
+risk_boundary_audit.json
+performance_review.md
+performance_review.json
+safety_scan.md
+safety_scan.json

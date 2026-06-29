@@ -52,8 +52,8 @@ Never enable `AutoTrade` on a real account before completing both steps.
 A completed test run should produce, under `MQL5/Files/CLSAgent/`:
 
 - `logs/journal.csv` — tick-by-tick decision journal.
-- `reports/trades.csv` — individual trade records.
-- `reports/baskets.csv` — basket-level grouping and outcomes.
+- `logs/trades.csv` — individual trade records.
+- `logs/baskets.csv` — basket-level grouping and outcomes.
 - `reports/performance.csv` — per-setup (A/B/C/D/E) performance breakdown.
 - `reports/backtest_summary.txt` — human-readable run summary.
 
@@ -63,6 +63,39 @@ tab → right-click → Save as Report**, `.htm`/`.html`).
 If you'd like to share results, use the
 [Backtest Result](.github/ISSUE_TEMPLATE/backtest-result.md) issue
 template and attach these files.
+
+## Mechanizing the checks (read-only helpers)
+
+The `scripts/` folder provides read-only Python helpers that turn the exported
+files above into gate reports, so the manual checklist below can be checked
+mechanically. They never control MT5, connect to a broker, send orders, enable
+AutoTrade, or change EA parameters — they only read evidence and write reports.
+
+```bash
+# Gate 1 — parse a MetaEditor compile log
+python3 scripts/parse_metaeditor_compile_log.py compile_log.txt \
+    --out compile_summary.md --json-out compile_summary.json
+
+# Gate 2 — confirm SIGNAL_ONLY produced no trades
+python3 scripts/validate_cls_backtest_package.py path/to/package \
+    --mode SIGNAL_ONLY --out validation.md --json-out validation.json
+
+# Gate 4 — risk-boundary traceability (no Risk Engine bypass)
+python3 scripts/audit_cls_risk_boundary.py path/to/package \
+    --max-orders-per-basket 2 --source-root MQL5 \
+    --out risk_boundary_audit.md --json-out risk_boundary_audit.json
+
+# Gate 5 — Strategy/Execution separation in source
+python3 scripts/static_safety_scan.py --root MQL5 \
+    --out safety_scan.md --json-out safety_scan.json
+
+# Gate 7 — engineering performance/demo-readiness review
+python3 scripts/review_cls_performance.py path/to/package \
+    --out performance_review.md --json-out performance_review.json
+```
+
+See [docs/REAL_ACCOUNT_READINESS_GATE.md](docs/REAL_ACCOUNT_READINESS_GATE.md)
+for the gate definitions and [docs/](docs/) for each workflow.
 
 ## Pass / fail checklist
 

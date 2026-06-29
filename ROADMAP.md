@@ -5,6 +5,15 @@ release. Versions are only advanced once their stated criteria are met
 — see [TESTING.md](TESTING.md) for how results are validated and
 [CHANGELOG.md](CHANGELOG.md) for what has actually shipped.
 
+The version milestones below map onto the gate-based readiness model in
+[docs/REAL_ACCOUNT_READINESS_GATE.md](docs/REAL_ACCOUNT_READINESS_GATE.md):
+v0.2.0 corresponds to Gate 1 (Compile Verification) and Gate 2 (Signal-Only
+Test); v0.3.0 to Gates 3–7 (Strategy Tester through Performance Review);
+v0.4.0 to Gate 8 (Demo Forward Testing); and v1.0.0 to Gates 9–10 (Live Risk
+Caps and Human Live Approval). See
+[docs/READINESS_ROADMAP.md](docs/READINESS_ROADMAP.md) for the current per-gate
+status and the read-only tooling that produces each gate's evidence.
+
 ## v0.1.0-beta — Public beta release (current)
 
 - Repository cleanup and rename to `cls-agent`.
