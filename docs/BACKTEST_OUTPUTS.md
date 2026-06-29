@@ -9,13 +9,16 @@ not a proposal.
 
 On a real MetaTrader 5 install, under the terminal's data folder:
 
-- `MQL5/Files/CLSAgent/logs/` — `journal.csv`
-- `MQL5/Files/CLSAgent/reports/` — `trades.csv`, `baskets.csv`,
-  `performance.csv`, `backtest_summary.txt`
+- `MQL5/Files/CLSAgent/logs/` — `journal.csv`, `trades.csv`, `baskets.csv`
+  (the three append-only logs, all written through the shared
+  `CLS_Csv_AppendLine()` helper, which targets `CLSAgent\logs\`)
+- `MQL5/Files/CLSAgent/reports/` — `performance.csv`, `backtest_summary.txt`
+  (the two point-in-time exports written by the Reporting module)
 
 When you collect a package for validation you can keep that structure or
 flatten it into one directory — `validate_cls_backtest_package.py` searches
-recursively by file name.
+recursively by file name, so it locates each file regardless of which
+subfolder it lives in.
 
 ## File schemas
 

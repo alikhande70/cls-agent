@@ -68,6 +68,27 @@ question — *does every executed trade belong to a symbol/setup the Risk Engine
 approved and executed?* — rather than forcing a count match that partial exits
 would legitimately break.
 
+## What the evidence can and cannot show
+
+Two properties of the EA's current logging are important when reading this
+audit's output:
+
+- **`baskets.csv riskPercent` is the *configured target*, not a measured
+  exposure.** The EA records `InpBasketRiskPercent` (the configured per-basket
+  risk target) on every basket row, not a recomputed live risk figure. So the
+  optional `--max-basket-risk-percent` check effectively confirms the logged
+  configuration is within your expected ceiling; it cannot, on its own, detect
+  real-time risk drift. The **order-count cap** and **no-add-to-losing** checks
+  are the load-bearing controls here.
+- **Order-count cap vs. `InpSuperBurst`.** The EA's per-basket order-count limit
+  (`InpMaxOrdersPerBasket`, default 2) is enforced by the Risk Engine *unless*
+  `InpSuperBurst` is enabled (default `false`), which deliberately allows
+  oversized bursts. This audit's `--max-orders-per-basket` check is therefore
+  the compensating, evidence-based control for confirming basket growth stayed
+  within the cap you expect — run it with the value the EA was configured with,
+  and treat any over-cap basket as a finding even if the run had
+  `InpSuperBurst` enabled.
+
 ## Safety note
 
 The audit only reads exported CSVs (and optionally source files) and writes

@@ -68,6 +68,30 @@ These are not conventions — they are enforced by the shape of the code:
    `AutoTrade == true`) on top of approval. Position Management only ever
    modifies/closes positions this same EA already opened.
 
+## Mode semantics & risk-cap boundaries (as implemented)
+
+Verified against the current source, for accuracy:
+
+- **Order permission is double-gated.** `g_State.tradingAllowedByMode` is true
+  only when `InpMode == CLS_MODE_AUTO_TRADE` **and** `InpAutoTrade == true`
+  (`CLSAgent.mq5` → `RefreshTradingPermissionFlag()`), and
+  `CLS_ExecuteBasketOrder()` is a no-op otherwise. Defaults (`SIGNAL_ONLY`,
+  `AutoTrade=false`) send nothing.
+- **`CLS_MODE_SEMI_AUTO` exists in the enum but has no manual-confirmation path
+  implemented.** Because the gate above requires `AUTO_TRADE`, `SEMI_AUTO`
+  currently behaves like `SIGNAL_ONLY` (it never reaches the broker). This is
+  safe/conservative; just be aware the "requires manual confirmation" wording in
+  the enum describes intent, not an implemented confirmation mechanism.
+- **Basket order-count cap and `InpSuperBurst`.** The Risk Engine rejects a new
+  basket order once `ordersCount >= InpMaxOrdersPerBasket` (default 2) — **unless
+  `InpSuperBurst` is true** (default `false`), which intentionally bypasses that
+  count check. `CLS_MAX_ORDERS_PER_BASKET_HARDCAP` (5) bounds the *input*
+  `InpMaxOrdersPerBasket` at init; it is not re-applied as a runtime ceiling when
+  `InpSuperBurst` overrides the count check. Keep `InpSuperBurst=false` for
+  conservative operation, and use the risk-boundary audit's
+  `--max-orders-per-basket` check as the evidence-based control (see
+  [RISK_BOUNDARY_AUDIT.md](RISK_BOUNDARY_AUDIT.md)).
+
 ## Trade traceability
 
 Every order carries a per-setup magic number

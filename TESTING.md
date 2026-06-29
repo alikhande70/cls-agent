@@ -52,8 +52,8 @@ Never enable `AutoTrade` on a real account before completing both steps.
 A completed test run should produce, under `MQL5/Files/CLSAgent/`:
 
 - `logs/journal.csv` — tick-by-tick decision journal.
-- `reports/trades.csv` — individual trade records.
-- `reports/baskets.csv` — basket-level grouping and outcomes.
+- `logs/trades.csv` — individual trade records.
+- `logs/baskets.csv` — basket-level grouping and outcomes.
 - `reports/performance.csv` — per-setup (A/B/C/D/E) performance breakdown.
 - `reports/backtest_summary.txt` — human-readable run summary.
 
