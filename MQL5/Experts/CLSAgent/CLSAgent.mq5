@@ -31,6 +31,7 @@
 #include <CLSAgent/Core/CLSAgent_Inputs.mqh>
 #include <CLSAgent/Core/CLSAgent_State.mqh>
 #include <CLSAgent/Core/CLSAgent_Utils.mqh>
+#include <CLSAgent/Core/CLSAgent_StrategyProfile.mqh>
 #include <CLSAgent/Market/CLSAgent_SymbolProfile.mqh>
 #include <CLSAgent/Market/CLSAgent_TimeSession.mqh>
 #include <CLSAgent/Market/CLSAgent_Indicators.mqh>
@@ -124,6 +125,16 @@ int OnInit()
 
    const ENUM_CLS_ASSET_CLASS detectedClass = CLS_ResolveAssetClass(_Symbol);
    CLS_State_Init(_Symbol, detectedClass);
+
+   // P1 scaffolding: resolve the active strategy profile once. BASELINE (the
+   // default) is fully neutral and preserves current behavior; QuickProfit is
+   // not implemented yet and no trading-decision path consumes g_StrategyProfile
+   // in P1. Logged at DEBUG so default-verbosity output is unchanged.
+   g_StrategyProfile = CLS_ResolveStrategyProfile();
+   CLS_Log(CLS_LOG_DEBUG, "Init", StringFormat(
+      "StrategyProfile=%s (QuickProfit %s; inputs inert in P1).",
+      EnumToString(g_StrategyProfile.profile),
+      (g_StrategyProfile.quickProfitActive ? "selected" : "inactive")));
 
    if(!CLS_BuildSymbolProfile(_Symbol, g_SymbolProfile))
       return INIT_FAILED;
