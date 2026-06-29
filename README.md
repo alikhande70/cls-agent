@@ -117,6 +117,10 @@ None of these scripts control MetaTrader 5, connect to a broker, send orders,
 enable AutoTrade, change EA parameters, or handle credentials. See
 [scripts/README_COMPILE_HELPERS.md](scripts/README_COMPILE_HELPERS.md).
 
+For the full local Windows workflow (clone → compile in MetaEditor → run
+Signal-Only/backtests → collect artifacts → run the validation scripts), see the
+[Claude Cowork MT5 Runbook](docs/CLAUDE_COWORK_MT5_RUNBOOK.md).
+
 ## Download
 
 **Option A — Download ZIP from GitHub**
