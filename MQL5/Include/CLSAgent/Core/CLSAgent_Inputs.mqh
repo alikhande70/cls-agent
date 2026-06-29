@@ -92,4 +92,22 @@ input ENUM_CLS_LOG_LEVEL InpLogLevel      = CLS_LOG_INFO; // Minimum severity pr
 input bool                InpLogToFile     = true;          // Mirror log lines to Files\CLSAgent\logs\
 input bool                InpShowDebugPanel= true;          // Draw on-chart debug panel
 
+input group "==== CLS Agent | Strategy Profile (P1 scaffolding - QuickProfit inert) ===="
+// P1 only: these declare the future QuickProfitMode surface. The profile defaults
+// to BASELINE (current behavior) and every QuickProfit input below defaults to a
+// neutral/inert value (0 = unlimited/off). NOTHING reads these to alter trading
+// in P1 - they are wired into CLS_ResolveStrategyProfile() only. QuickProfitMode
+// logic (profit-lock, faster trailing, lower thresholds, frequency guards) is
+// added in later, owner-approved phases. See docs/QUICKPROFIT_MODE_DESIGN.md.
+input ENUM_CLS_STRATEGY_PROFILE InpStrategyProfile = CLS_PROFILE_BASELINE; // Active strategy profile (default = current behavior)
+input double InpQuickProfitScoreDelta               = 0.0; // [QuickProfit, inert in P1] min-score offset, <=0 (0 = no change)
+input int    InpQuickProfitMaxTradesPerDay          = 0;   // [QuickProfit, inert in P1] cap per day (0 = unlimited)
+input int    InpQuickProfitMaxTradesPerSymbolPerDay = 0;   // [QuickProfit, inert in P1] cap per symbol/day (0 = unlimited)
+input int    InpQuickProfitMaxConcurrentPositions   = 0;   // [QuickProfit, inert in P1] max open positions (0 = unlimited)
+input int    InpQuickProfitCooldownAfterLossMinutes = 0;   // [QuickProfit, inert in P1] cooldown after a loss (0 = off)
+input int    InpQuickProfitCooldownAfterWinMinutes  = 0;   // [QuickProfit, inert in P1] cooldown after a win (0 = off)
+input double InpQuickProfitMinProfitMoney           = 0.0; // [QuickProfit, inert in P1] profit-lock arm trigger, account ccy (0 = off)
+input double InpQuickProfitLockMoney                = 0.0; // [QuickProfit, inert in P1] protected profit, account ccy (0 = off)
+input double InpQuickProfitStepMoney                = 0.0; // [QuickProfit, inert in P1] profit-lock step, account ccy (0 = off)
+
 #endif // CLSAGENT_INPUTS_MQH

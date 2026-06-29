@@ -19,6 +19,18 @@ enum ENUM_CLS_MODE
    CLS_MODE_AUTO_TRADE  = 2    // Fully automatic execution under Risk Engine rules
 };
 
+// Strategy profile (P1 scaffolding). Selects the EA's behavior "personality".
+// BASELINE = the current, proven strategy (the permanent default and reference).
+// QUICK_PROFIT = an optional, more-active profile that is NOT implemented yet -
+// see docs/QUICKPROFIT_MODE_DESIGN.md. In P1 this only labels the active profile;
+// every QuickProfit input is inert and no trading behavior changes. QuickProfit
+// behavior is added later in separate, owner-approved, gate-based phases.
+enum ENUM_CLS_STRATEGY_PROFILE
+{
+   CLS_PROFILE_BASELINE     = 0,   // Current behavior (default, reference for A/B testing)
+   CLS_PROFILE_QUICK_PROFIT = 1    // Future/optional profile - inert until later phases
+};
+
 // Asset class, used to select per-class Score/Risk profiles (Rule #8).
 enum ENUM_CLS_ASSET_CLASS
 {
