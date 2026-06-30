@@ -19,7 +19,7 @@ status and the read-only tooling that produces each gate's evidence.
 - Repository cleanup and rename to `cls-agent`.
 - Professional documentation: README, LICENSE, DISCLAIMER, CONTRIBUTING,
   CHANGELOG, ROADMAP, TESTING.
-- Download and MCP/Claude Code readiness (clone, inspect, test locally).
+- Download and MCP-compatible tooling readiness (clone, inspect, test locally).
 
 ## v0.2.0 — Compile verified
 
