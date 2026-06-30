@@ -1,0 +1,61 @@
+; =====================================================================
+; CLS Agent - sample MetaTrader 5 Strategy Tester config (EXAMPLE)
+; ---------------------------------------------------------------------
+; This is a TEMPLATE. Copy it to "tester.ini" and edit the values for
+; your run. It pairs with docs/skills/mt5_cli_backtest.md and the
+; docs/MT5_INSTALL_COMPILE_BACKTEST_RUNBOOK.md gate workflow.
+;
+; SILENT-FAILURE TRAPS (read mt5_cli_backtest.md):
+;   1. Save this file as ASCII. A UTF-8 byte-order-mark (BOM) makes MT5
+;      ignore the WHOLE file with no error.
+;   2. Launch with /portable, or MT5 silently ignores [Tester]:
+;        terminal64.exe /portable /config:"<full path>\tester.ini"
+;   3. EA inputs MUST live in [TesterInputs] below. Symbol/Period in
+;      [Tester] alone is NOT enough to set the EA's inputs.
+;
+; This template is configured for a SIGNAL-ONLY BASELINE run (Gate 2):
+; it produces a decision journal and must place ZERO trades. To run an
+; in-tester Baseline backtest with execution (Gate 3), use the commented
+; AUTO_TRADE lines in [TesterInputs]. AUTO_TRADE here is historical
+; simulation only - never a real or demo account.
+; =====================================================================
+
+[Tester]
+Expert=CLSAgent\CLSAgent
+Symbol=XAUUSD
+Period=M5
+; Model: 4=every tick based on real ticks (preferred). Fallbacks:
+; 0=every tick, 1=1-minute OHLC, 2=open prices only.
+Model=4
+Optimization=0
+FromDate=2024.01.01
+ToDate=2024.06.30
+Deposit=10000
+Currency=USD
+Leverage=100
+ExecutionMode=0
+Report=evidence_baseline_XAUUSD_M5
+ReplaceReport=1
+ShutdownTerminal=1
+Visual=0
+
+[TesterInputs]
+; --- safety-critical pins (enum values from Core/CLSAgent_Types.mqh) ---
+; InpStrategyProfile: 0=CLS_PROFILE_BASELINE, 1=CLS_PROFILE_QUICK_PROFIT
+InpStrategyProfile=0
+; InpMode: 0=CLS_MODE_SIGNAL_ONLY, 1=CLS_MODE_SEMI_AUTO, 2=CLS_MODE_AUTO_TRADE
+InpMode=0
+InpAutoTrade=false
+; Write the CSV evidence (journal/trades/baskets + performance snapshot).
+InpLogToFile=true
+; On-chart panel is irrelevant headless; keep it off to reduce noise.
+InpShowDebugPanel=false
+
+; --- Gate 3 (Baseline backtest WITH execution, in the tester only) ---
+; Comment out the two SIGNAL_ONLY lines above and uncomment these:
+; InpMode=2
+; InpAutoTrade=true
+
+; Any EA input not listed here uses its built-in default from
+; Core/CLSAgent_Inputs.mqh. Pin only what the run needs, and record the
+; full config (symbol/period/model/dates/spread/deposit) with the evidence.
