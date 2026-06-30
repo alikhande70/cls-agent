@@ -10,9 +10,9 @@ the Companion is a **review-and-report** tool. It never trades.
 
 ## Purpose
 
-A CLS Companion MCP would let Claude Code / Claude Cowork run the same read-only
-inspection and validation this repository already provides as scripts, through a
-structured tool interface — inspecting source, parsing compile logs, validating
+A CLS Companion MCP would let external review/validation tooling run the same
+read-only inspection and validation this repository already provides as scripts,
+through a structured tool interface — inspecting source, parsing compile logs, validating
 exported backtest packages, and generating readiness reports.
 
 ## What it reads
@@ -80,11 +80,11 @@ strict:
 - No Companion output may be wired to auto-enable AutoTrade, auto-set
   `Mode = AUTO_TRADE`, or auto-change risk inputs on any account.
 
-## Safe use from Claude Code / Claude Cowork
+## Safe use from external review/validation tooling
 
-- Claude Code / Cowork may invoke the read-only capabilities to inspect code and
-  generate readiness reports (see
-  [CLAUDE_CODE_REVIEW_WORKFLOW.md](CLAUDE_CODE_REVIEW_WORKFLOW.md) and
-  [CLAUDE_COWORK_LOCAL_VALIDATION.md](CLAUDE_COWORK_LOCAL_VALIDATION.md)).
+- A reviewer or review/validation tool may invoke the read-only capabilities to
+  inspect code and generate readiness reports (see
+  [CODE_REVIEW_WORKFLOW.md](CODE_REVIEW_WORKFLOW.md) and the local workflow in
+  [MT5_INSTALL_COMPILE_BACKTEST_RUNBOOK.md](MT5_INSTALL_COMPILE_BACKTEST_RUNBOOK.md)).
 - They must not use any tool — Companion or otherwise — to send orders, enable
   AutoTrade, or change live risk settings. Those remain manual human actions.

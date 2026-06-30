@@ -1,10 +1,10 @@
-# Claude Code Review Workflow
+# Code Review Workflow
 
-This document defines how **Claude Code** (or any GitHub MCP-compatible AI tool)
-may work with this repository. It is bound by
-[AGENT_COMPANION_BOUNDARY.md](AGENT_COMPANION_BOUNDARY.md).
+This document defines how **external review tooling** — any reviewer, contributor,
+or GitHub MCP-compatible review tool — may work with this repository. It is bound
+by [AGENT_COMPANION_BOUNDARY.md](AGENT_COMPANION_BOUNDARY.md).
 
-## What Claude Code MAY do
+## What a reviewer / review tool MAY do
 
 - **Read and explain** the source code and docs.
 - **Review architecture** and confirm module boundaries (see
@@ -15,9 +15,9 @@ may work with this repository. It is bound by
 - **Update documentation.**
 - **Add tests and read-only helper scripts** (like those in `scripts/`).
 - **Prepare validation reports** by running the read-only helpers against
-  evidence the human exported.
+  evidence the operator exported.
 
-## What Claude Code MUST NOT do
+## What a reviewer / review tool MUST NOT do
 
 - enable live trading;
 - send, modify, or close orders;
@@ -37,19 +37,19 @@ additive and must not weaken the Strategy / Risk / Execution boundaries — the
 1. **Understand** — read the EA modules and the readiness docs.
 2. **Static safety** — run `python3 scripts/static_safety_scan.py` to confirm
    the boundaries still hold (no broker run needed).
-3. **Compile (human-run)** — the owner compiles in MetaEditor and shares
-   `compile_log.txt`; Claude Code parses it with
+3. **Compile (operator-run)** — the operator compiles in MetaEditor and shares
+   `compile_log.txt`, which is parsed with
    `scripts/parse_metaeditor_compile_log.py`.
-4. **Validate (human-run)** — the owner exports a test package; Claude Code runs
-   `validate_cls_backtest_package.py`, `audit_cls_risk_boundary.py`, and
-   `review_cls_performance.py` against it.
-5. **Report** — Claude Code summarizes results against the
-   [readiness gates](REAL_ACCOUNT_READINESS_GATE.md) and proposes next steps.
+4. **Validate (operator-run)** — the operator exports a test package, which is
+   checked with `validate_cls_backtest_package.py`, `audit_cls_risk_boundary.py`,
+   and `review_cls_performance.py`.
+5. **Report** — results are summarized against the
+   [readiness gates](REAL_ACCOUNT_READINESS_GATE.md) with proposed next steps.
 6. **Propose** — any code change goes out as a PR for human review; nothing is
    auto-merged to `main` unless operated directly by the owner/admin.
 
 ## Boundary, restated
 
-Claude Code is a reviewer and report generator. It never becomes an execution
-controller, order sender, risk override, or auto-trading operator. The
+External review tooling is a reviewer and report generator. It never becomes an
+execution controller, order sender, risk override, or auto-trading operator. The
 deterministic EA, after gates and human approval, is the only thing that trades.

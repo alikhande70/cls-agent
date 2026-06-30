@@ -92,10 +92,10 @@ No gate self-approves, and Gate 10 is a manual human decision. The full
 definitions are in
 [docs/REAL_ACCOUNT_READINESS_GATE.md](docs/REAL_ACCOUNT_READINESS_GATE.md).
 
-LLM / MCP / Companion tools (including Claude Code and Claude Cowork) are
-**review and validation helpers only** — they read code and exported evidence
-and generate reports. They do **not** send orders, enable AutoTrade, change
-live risk settings, or control live execution. This boundary is described in
+LLM / MCP / Companion tools are **review and validation helpers only** — they
+read code and exported evidence and generate reports. They do **not** send
+orders, enable AutoTrade, change live risk settings, or control live execution.
+This boundary is described in
 [docs/AGENT_COMPANION_BOUNDARY.md](docs/AGENT_COMPANION_BOUNDARY.md) and anchored
 in code by the `CLS_LLM_CAN_SEND_ORDERS = false` constant.
 
@@ -119,7 +119,7 @@ enable AutoTrade, change EA parameters, or handle credentials. See
 
 For the full local Windows workflow (clone → compile in MetaEditor → run
 Signal-Only/backtests → collect artifacts → run the validation scripts), see the
-[Claude Cowork MT5 Runbook](docs/CLAUDE_COWORK_MT5_RUNBOOK.md).
+[MetaTrader 5 Install, Compile, and Backtest Runbook](docs/MT5_INSTALL_COMPILE_BACKTEST_RUNBOOK.md).
 
 ## Download
 
@@ -177,12 +177,14 @@ Always validate in the Strategy Tester before any demo or live use:
 Full pass/fail criteria and required outputs are documented in
 [TESTING.md](TESTING.md).
 
-## Using with MCP / Claude Code
+## Review and Contribution Workflow
 
-This repository can be cloned locally and opened by Claude Code or any
-GitHub MCP-compatible tool. AI tools may inspect the code, explain it,
-and suggest improvements. AI tools must not auto-commit to `main` unless
-operated directly by the repository owner/admin.
+This repository can be cloned locally and opened by any GitHub MCP-compatible
+review tool. Such read-only review tooling may inspect the code, explain it, and
+suggest improvements, but it is non-runtime tooling: it does not control
+MetaTrader 5, connect to a broker, send or modify orders, enable AutoTrade,
+change EA parameters, or handle credentials. Review tools must not auto-commit to
+`main` unless operated directly by the repository owner/admin.
 
 If you'd like to propose a change after AI-assisted review, please open
 an Issue, start a Discussion, or submit a Pull Request — direct

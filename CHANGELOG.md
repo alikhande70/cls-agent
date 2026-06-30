@@ -2,6 +2,22 @@
 
 All notable changes to CLS Agent are documented in this file.
 
+## [Unreleased] — Documentation generalization (MT5 install/runbook)
+
+Docs-only cleanup. **No MQL5, script, or trading-behavior changes.**
+
+- Replaced the assistant-branded operational runbook with a neutral
+  `docs/MT5_INSTALL_COMPILE_BACKTEST_RUNBOOK.md` (adds a dependency preflight and
+  install-missing-dependencies section).
+- Renamed the review-workflow doc to `docs/CODE_REVIEW_WORKFLOW.md` and removed
+  the redundant local-validation doc (its content is covered by the runbook).
+- Neutralized assistant-specific branding in `README.md`, `ROADMAP.md`,
+  `LICENSE`, and `docs/CLS_COMPANION_MCP_ROADMAP.md`.
+- Preserved the EA's LLM / MCP / Companion safety architecture and the
+  `CLS_LLM_CAN_SEND_ORDERS` constant unchanged. Baseline remains the default;
+  QuickProfitMode remains not fully implemented; real trading remains not
+  approved. All performance remains PENDING BACKTEST / PENDING DEMO VALIDATION.
+
 ## [Unreleased] — EA Readiness + Companion Review Layer
 
 Additive readiness layer around the existing deterministic EA. **No EA trading
@@ -16,7 +32,8 @@ logic, structure, or order behavior was changed.**
     `SIGNAL_ONLY_TEST.md`, `BACKTEST_OUTPUTS.md`, `RISK_BOUNDARY_AUDIT.md`,
     `PERFORMANCE_REVIEW.md`, `DEMO_READINESS.md`.
   - `CLS_COMPANION_MCP_ROADMAP.md` (documentation only — no MCP server),
-    `CLAUDE_CODE_REVIEW_WORKFLOW.md`, `CLAUDE_COWORK_LOCAL_VALIDATION.md`.
+    `CODE_REVIEW_WORKFLOW.md`, and a local validation workflow (later merged into
+    `MT5_INSTALL_COMPILE_BACKTEST_RUNBOOK.md`).
 - Added read-only `scripts/` helpers (Python 3, standard library only):
   `parse_metaeditor_compile_log.py`, `validate_cls_backtest_package.py`,
   `audit_cls_risk_boundary.py`, `review_cls_performance.py`,

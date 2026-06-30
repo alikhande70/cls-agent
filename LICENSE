@@ -31,8 +31,8 @@ You MAY, free of charge:
      evaluation.
   d. Review the code for educational purposes.
   e. Inspect, analyze, or summarize the code using AI tools, IDEs, or
-     Model Context Protocol (MCP)-compatible tooling (including Claude
-     Code), whether running locally or against your own clone.
+     Model Context Protocol (MCP)-compatible tooling, whether running
+     locally or against your own clone.
   f. Submit Issues, Discussions, and Pull Requests to this repository
      proposing fixes, improvements, or suggestions.
 
